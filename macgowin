@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-BOARD=tangnano20k
-DEVICE=GW2AR-LV18QN88C8/I7
 IMAGENAME=gowin_eda
 USER=user
 CWD=$( cd $( pwd ) &> /dev/null && pwd | sed -e "s|$( cd && pwd )/||" )
@@ -11,6 +9,11 @@ home_in_container=/home/$USER
 usage()
 {
     echo "macgowin [options] commans ..."
+    echo
+    echo "options:"
+    echo "    -b, --board <board name>"
+    echo "        --list-boards"
+    echo "    -h, --help"
     echo
     echo "examples:"
     echo "    macgowin build examples/TangNanoZ80MEM run"
@@ -23,12 +26,29 @@ main()
     local args=()
 
     opt_out_dir=.
+    opt_board=tangnano20k
+
+    local done=false
+    local exec_ide=false
 
     while [[ $# -gt 0 ]]; do
         case $1 in
         -h|--help)
             usage
             shift
+            done=true
+            ;;
+        -b|--board)
+            shift
+            opt_board="$1"
+            shift
+            ;;
+        --list-boards)
+            shift
+            echo "Known boards:"
+            echo "    tangnano20k"
+            echo "    tangprimer25k"
+            done=true
             ;;
         -*|--*)
             echo "Unknown option $1"
@@ -41,10 +61,21 @@ main()
         esac
     done
 
+    case "$opt_board" in
+    tangnano20k)
+        opt_device="GW2AR-LV18QN88C8/I7"
+        ;;
+    tangprimer25k)
+        opt_device="-device_version A GW5A-LV25MG121NC1/I0"
+        ;;
+    *)
+        echo "Unknown board $opt_board"
+        exit 1
+        ;;
+    esac
+
     set -- "${args[@]}"
 
-    local done=false
-    local exec_ide=false
     while [[ $# -gt 0 ]]; do
         case $1 in
         remove_image)
@@ -74,10 +105,10 @@ main()
             exec_ide=true
             ;;
         flash)
-            openFPGALoader --board "${BOARD}" --write-flash ${opt_out_dir}/impl/pnr/project.fs
+            openFPGALoader --board "${opt_board}" --write-flash ${opt_out_dir}/impl/pnr/project.fs
             ;;
         run)
-            openFPGALoader --board "${BOARD}" ${opt_out_dir}/impl/pnr/project.fs
+            openFPGALoader --board "${opt_board}" ${opt_out_dir}/impl/pnr/project.fs
             ;;
         *)
             echo "Unknown command $1"
@@ -158,8 +189,8 @@ generate_script()
     esac
     cat "$1/gw_sh.script" | \
         sed -e "s|\${PJD}|${PJD}|g" \
-            -e "s|\${DEVICE}|${DEVICE}|g" \
-            -e "s|\${BOARD}|${BOARD}|g" \
+            -e "s|\${DEVICE}|${opt_device}|g" \
+            -e "s|\${BOARD}|${opt_board}|g" \
             > ${opt_out_dir}/impl/.gowin_script.tmp
     cat ${opt_out_dir}/impl/.gowin_script.tmp
 }
