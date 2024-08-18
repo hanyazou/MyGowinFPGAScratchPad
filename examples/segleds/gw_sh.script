@@ -1,0 +1,8 @@
+add_file ${PJD}/top.sv
+add_file ${PJD}/${BOARD}.cst
+set_device ${DEVICE}
+set_option -top_module top
+set_option -verilog_std sysv2017
+set_option -cst_warn_to_error 1
+set_option -use_cpu_as_gpio 1
+run all
