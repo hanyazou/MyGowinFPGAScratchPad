@@ -9,8 +9,8 @@ IO_LOC "cs" C10;
 IO_PORT "cs" PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
 
 // Push buttons
-IO_LOC "reset" H11;  // S1
-IO_PORT "reset" PULL_MODE=DOWN BANK_VCCIO=3.3;
+IO_LOC "reset_sw" H11;  // S1
+IO_PORT "reset_sw" PULL_MODE=DOWN BANK_VCCIO=3.3;
 
 // Clock
 IO_LOC "clk" E2;

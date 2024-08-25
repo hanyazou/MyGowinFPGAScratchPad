@@ -1,5 +1,5 @@
 module max7219_display(
-   input logic        clk, reset,
+   input logic        clk, reset_sw,
    output logic       spi_clk, dout, cs, stop,
    output logic [9:0] debug
    );
@@ -21,7 +21,7 @@ module max7219_display(
    always@(posedge clk) begin
       count <= count[14:0] + 1;
       
-      if(count == 50 || stop)
+      if(count == 50)
         count <= 0;
       if(count <= 25)
         spi_clk <= 1;
@@ -32,16 +32,19 @@ module max7219_display(
    logic [5:0]  state = 0;
    wire [5:0]  next_state;
    logic        prev_cs = 1;
+   wire         reset_n;
 
+   assign reset_n = ~reset_sw;
    assign debug[4:0] = state[4:0];
    assign debug[8:5] = next_state[3:0];
-   max7219_spi spi(spi_clk, reset, addr, data, dout, cs);
+   assign debug[9] = ~reset_n;
 
+   max7219_spi spi(spi_clk, reset_n, addr, data, dout, cs);
    max7219_sm sm(spi_clk, state, next_state, addr, data, stop);
 
    // state register
    always@(posedge cs) begin
-      if(~reset)
+      if(~reset_n)
          state <= 0;
       else
          state <= next_state;
@@ -148,8 +151,8 @@ module max7219_sm(
        14: begin
           addr = `REG_NOP;
           data = 0;
-          stop = 1'b1;
-          next_state = 5;
+          stop = 1;
+          next_state = 14;
        end
      endcase // case (state)
 
@@ -157,7 +160,7 @@ endmodule // max7219_frame
 
 
 module max7219_spi(
-   input logic  clk, reset, [7:0] addr, [7:0] data,
+   input logic  clk, reset_n, [7:0] addr, [7:0] data,
    output logic dout, cs
    );
 
@@ -165,7 +168,7 @@ module max7219_spi(
 
    // state registor
    always_ff@(negedge clk)
-     if (~reset)
+     if (~reset_n)
        state <= 0;
      else
        state <= next_state;
