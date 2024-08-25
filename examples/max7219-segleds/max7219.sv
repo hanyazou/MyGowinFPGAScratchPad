@@ -19,7 +19,7 @@ module max7219_display(
    // clock divider
    logic [15:0]  count = 0;
    always@(posedge clk) begin
-      count <= count + 1;
+      count <= count[14:0] + 1;
       
       if(count == 50 || stop)
         count <= 0;
@@ -34,10 +34,9 @@ module max7219_display(
    logic [7:0]  spi_count = 0;
    logic        prev_cs = 1;
 
-   assign debug[4:0] = state;
-   //assign debug[9:5] = next_state;
-   //assign debug[9:5] = spi_count[4:0];
-   assign debug[8:5] = next_state;
+   assign debug[4:0] = state[4:0];
+   //assign debug[8:5] = spi_count[3:0];
+   assign debug[8:5] = next_state[3:0];
    assign debug[9] = ~reset;
 
    max7219_spi spi(spi_clk, reset, addr, data, dout, cs);
@@ -49,7 +48,7 @@ module max7219_display(
    //always_ff@(posedge cs, negedge reset)
    //always_ff@(posedge spi_clk) begin
    always@(posedge clk) begin
-      spi_count <= spi_count + 1;
+      spi_count <= spi_count[6:0] + 1;
       if(~reset) begin
          state <= 0;
       end
