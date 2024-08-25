@@ -13,8 +13,8 @@ module max7219_display(
 `define REG_SHUTDOWN            8'h0c
 `define REG_DISPLAY_TEST        8'h0f
 
-   wire [7:0] addr;
-   wire [7:0] data;
+   logic [7:0] addr;
+   logic [7:0] data;
 
    // clock divider
    logic [15:0]  count = 0;
@@ -30,7 +30,7 @@ module max7219_display(
    end
 
    logic [5:0]  state = 0;
-   wire [5:0]  next_state;
+   logic [5:0]  next_state;
    logic        prev_cs = 1;
    wire         reset_n;
 
@@ -40,7 +40,6 @@ module max7219_display(
    assign debug[9] = ~reset_n;
 
    max7219_spi spi(spi_clk, reset_n, addr, data, dout, cs);
-   max7219_sm sm(spi_clk, state, next_state, addr, data, stop);
 
    // state register
    always@(posedge cs) begin
@@ -50,19 +49,8 @@ module max7219_display(
          state <= next_state;
    end // always_ff@ (posedge cs)
 
-endmodule // max7219_display
-
-module max7219_sm(
-   input logic clk,
-   input logic [5:0] state,
-   output logic [5:0] next_state,
-   output logic [7:0] addr,
-   output logic [7:0] data,
-   output logic stop
-   );
-
    // state machine
-   always @(posedge clk)
+   always @(posedge spi_clk)
      case (state)
        0: begin
           addr = `REG_DISPLAY_TEST;
