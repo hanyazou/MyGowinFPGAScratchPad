@@ -1,5 +1,6 @@
 add_file ${PJD}/top.sv
 add_file ${PJD}/max7219.sv
+add_file ${PJD}/sseg_decoder.sv
 add_file ${PJD}/${BOARD}.cst
 set_device ${DEVICE}
 set_option -top_module top

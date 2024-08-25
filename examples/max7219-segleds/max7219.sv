@@ -1,5 +1,6 @@
 module max7219_display(
    input logic        clk, reset_sw,
+   input logic [7:0]  frame[4],
    output logic       spi_clk, dout, cs, stop,
    output logic [9:0] debug
    );
@@ -15,6 +16,7 @@ module max7219_display(
 
    logic [7:0] addr;
    logic [7:0] data;
+   logic [7:0] sending_data;
 
    // clock divider
    logic [15:0]  count = 0;
@@ -39,7 +41,7 @@ module max7219_display(
    assign debug[8:5] = next_state[3:0];
    assign debug[9] = ~reset_n;
 
-   max7219_spi spi(spi_clk, reset_n, addr, data, dout, cs);
+   max7219_spi spi(spi_clk, reset_n, addr, sending_data, dout, cs);
 
    // state register
    always@(posedge cs) begin
@@ -48,6 +50,24 @@ module max7219_display(
       else
          state <= next_state;
    end // always_ff@ (posedge cs)
+
+   // decode 7 segment pattern
+   wire [6:0] decoded;
+   sseg_decoder decoder(data[3:0], decoded);
+   always @(posedge spi_clk) begin
+      if (`REG_DIGIT(0) <= addr && addr <= `REG_DIGIT(7)) begin
+        sending_data[0] <= ~decoded[6];
+        sending_data[1] <= ~decoded[5];
+        sending_data[2] <= ~decoded[4];
+        sending_data[3] <= ~decoded[3];
+        sending_data[4] <= ~decoded[2];
+        sending_data[5] <= ~decoded[1];
+        sending_data[6] <= ~decoded[0];
+        sending_data[7] <= 0;
+      end else begin
+        sending_data <= data;
+      end
+   end
 
    // state machine
    always @(posedge spi_clk)
@@ -78,69 +98,63 @@ module max7219_display(
        end
        4: begin
           addr = `REG_DECODE_MODE;
-          data = 'hff;
+          data = 'h00;
           stop = 0;
           next_state = 5;
        end
        5: begin
           addr = `REG_DIGIT(0);
-          data = 'h00;
+          data = frame[3][3:0];
           stop = 0;
           next_state = 6;
        end
        6: begin
           addr = `REG_DIGIT(1);
-          data = 'h01;
+          data = frame[3][7:4];
           stop = 0;
           next_state = 7;
        end
        7: begin
           addr = `REG_DIGIT(2);
-          data = 'h02;
+          data = frame[2][3:0];
           stop = 0;
           next_state = 8;
        end
        8: begin
           addr = `REG_DIGIT(3);
-          data = 'h03;
+          data = frame[2][7:4];
           stop = 0;
           next_state = 9;
        end
        9: begin
           addr = `REG_DIGIT(4);
-          data = 'h04;
+          data = frame[1][3:0];
           stop = 0;
           next_state = 10;
        end
        10: begin
           addr = `REG_DIGIT(5);
-          data = 'h05;
+          data = frame[1][7:4];
           stop = 0;
           next_state = 11;
        end
        11: begin
           addr = `REG_DIGIT(6);
-          data = 'h06;
+          data = frame[0][3:0];
           stop = 0;
           next_state = 12;
        end
        12: begin
           addr = `REG_DIGIT(7);
-          data = 'h07;
+          data = frame[0][7:4];
           stop = 0;
-          next_state = 13;
+          next_state = 5;
        end
        13: begin
           addr = `REG_NOP;
           data = 0;
-          stop = 0;
-          next_state = 14;
-       end
-       14: begin
-          addr = `REG_NOP;
-          data = 0;
           stop = 1;
-          next_state = 14;
+          next_state = 13;
        end
      endcase // case (state)
 
