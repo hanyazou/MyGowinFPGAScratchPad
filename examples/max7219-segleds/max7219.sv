@@ -31,32 +31,20 @@ module max7219_display(
 
    logic [5:0]  state = 0;
    wire [5:0]  next_state;
-   logic [7:0]  spi_count = 0;
    logic        prev_cs = 1;
 
    assign debug[4:0] = state[4:0];
-   //assign debug[8:5] = spi_count[3:0];
    assign debug[8:5] = next_state[3:0];
-   assign debug[9] = ~reset;
-
    max7219_spi spi(spi_clk, reset, addr, data, dout, cs);
-   //max7219_spi(spi_clk, reset, 8'b01011010, spi_count, dout, cs);
 
    max7219_sm sm(spi_clk, state, next_state, addr, data, stop);
 
    // state register
-   //always_ff@(posedge cs, negedge reset)
-   //always_ff@(posedge spi_clk) begin
-   always@(posedge clk) begin
-      spi_count <= spi_count[6:0] + 1;
-      if(~reset) begin
+   always@(posedge cs) begin
+      if(~reset)
          state <= 0;
-      end
-      else begin
-         if (prev_cs == 0 && cs)
-           state <= next_state;
-      end
-      prev_cs <= cs;
+      else
+         state <= next_state;
    end // always_ff@ (posedge cs)
 
 endmodule // max7219_display
