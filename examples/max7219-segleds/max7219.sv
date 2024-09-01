@@ -226,7 +226,7 @@ module max7219_spi
        22: begin dout = data[`CASCADE0][3]; cs = 0; next_state = 23; end
        23: begin dout = data[`CASCADE0][2]; cs = 0; next_state = 24; end
        24: begin dout = data[`CASCADE0][1]; cs = 0; next_state = 25; end
-       25: begin dout = data[`CASCADE0][0]; cs = 0; next_state = 30; end
+       25: begin dout = data[`CASCADE0][0]; cs = 0; next_state = ((1 < NUM_CASCADES) ? 30 : 1); end
 
        30: begin dout = addr[7]; cs = 0; next_state = 31; end
        31: begin dout = addr[6]; cs = 0; next_state = 32; end
@@ -243,7 +243,7 @@ module max7219_spi
        42: begin dout = data[`CASCADE1][3]; cs = 0; next_state = 43; end
        43: begin dout = data[`CASCADE1][2]; cs = 0; next_state = 44; end
        44: begin dout = data[`CASCADE1][1]; cs = 0; next_state = 45; end
-       45: begin dout = data[`CASCADE1][0]; cs = 0; next_state = 50; end
+       45: begin dout = data[`CASCADE1][0]; cs = 0; next_state = ((2 < NUM_CASCADES) ? 50 : 1); end
 
        50: begin dout = addr[7]; cs = 0; next_state = 51; end
        51: begin dout = addr[6]; cs = 0; next_state = 52; end
@@ -260,7 +260,7 @@ module max7219_spi
        62: begin dout = data[`CASCADE2][3]; cs = 0; next_state = 63; end
        63: begin dout = data[`CASCADE2][2]; cs = 0; next_state = 64; end
        64: begin dout = data[`CASCADE2][1]; cs = 0; next_state = 65; end
-       65: begin dout = data[`CASCADE2][0]; cs = 0; next_state = 70; end
+       65: begin dout = data[`CASCADE2][0]; cs = 0; next_state = ((3 < NUM_CASCADES) ? 70 : 1); end
 
        70: begin dout = addr[7]; cs = 0; next_state = 71; end
        71: begin dout = addr[6]; cs = 0; next_state = 72; end
