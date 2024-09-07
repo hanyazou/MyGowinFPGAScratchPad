@@ -1,0 +1,12 @@
+add_file ${PJD}/LicheeTang25k_SDRAM/sdram/src/gowin_pll/PLL.v
+add_file ${PJD}/LicheeTang25k_SDRAM/sdram/src/sdram_ctrl.sv
+add_file ${PJD}/LicheeTang25k_SDRAM/sdram/src/top.sv
+add_file ${PJD}/LicheeTang25k_SDRAM/sdram/src/uart_tx_V2.v
+add_file ${PJD}/LicheeTang25k_SDRAM/sdram/src/sdram.cst
+set_device ${DEVICE}
+set_option -top_module top
+set_option -verilog_std sysv2017
+set_option -cst_warn_to_error 1
+set_option -use_i2c_as_gpio 1
+set_option -use_cpu_as_gpio 1
+run all

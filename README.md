@@ -12,6 +12,8 @@ GUIなしコマンドラインのみでTangNanoをプログラムします。
   * このプロジェクトをダウンロードします  
   ```bash
 git clone https://github.com/hanyazou/MyGowinFPGAScratchPad.git
+git submodule init
+git submodule update
   ```
   * GOWINのサイトからGown V1.9.9.03 Education (Windows ×86)をダウンロードします  
     https://www.gowinsemi.com/en/support/download_eda
