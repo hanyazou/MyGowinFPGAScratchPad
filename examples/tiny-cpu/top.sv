@@ -1,16 +1,28 @@
+`define mem_cmd_nop 2'b00
+`define mem_cmd_read 2'b01
+`define mem_cmd_write 2'b10
+
 module top(
    input logic sysclk, S1, S2,
    output logic spi_clk, dout, cs, stop,
    output logic [10:1] pin
    );
 
-   reg reset;
    wire [15:0] pc;
    wire [15:0] flag;
-   reg [15:0] ins;
-   reg [15:0] regs[8];
+   wire [15:0] ins;
    reg halt;
-   reg [15:0] mem[16];
+   reg [15:0] regs[8];
+   reg [3:0] state;
+
+   reg [15:0] mem_addr;
+   reg [1:0] mem_cmd;
+   reg mem_run;
+   reg [15:0] mem_wr_data;
+   reg [15:0] mem_rd_data;
+   reg mem_done;
+   reg [2:0] mem_rd_reg;
+   assign ins = mem_rd_data;
 
    logic [63:0] counter = 0;
    always @(posedge sysclk)
@@ -22,120 +34,206 @@ module top(
    wire reset_sw;
    assign reset_sw = S2;
 
-   `define reg_pc regs[6]
-   `define reg_flag regs[7]
-   `define reg_flag_zero `reg_flag[0]
+   `define reg_pc 6
+   `define reg_flag 7
+   `define reg_flag_zero regs[`reg_flag][0]
 
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
-   assign frame[0] = `reg_pc[15:8];
-   assign frame[1] = `reg_pc[7:0];
+   assign frame[0] = mem_addr[15:8];
+   assign frame[1] = mem_addr[7:0];
    assign frame[2] = ins[15:8];
    assign frame[3] = ins[7:0];
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
-   assign frame[6] = `reg_flag[15:8];
-   assign frame[7] = `reg_flag[7:0];
+   assign frame[6] = { state[3:0], mem_cmd[1:0], mem_run, mem_done };
+   assign frame[7] = regs[`reg_flag][7:0];
+
+   memory mem(clk, reset_sw, mem_addr, mem_cmd, mem_run, mem_wr_data, mem_rd_data, mem_done);
+
+   task reset();
+      regs[0] <= 'hffff;
+      regs[1] <= 'hffff;
+      regs[2] <= 'hffff;
+      regs[3] <= 'hffff;
+      regs[4] <= 'hffff;
+      regs[5] <= 'hffff;
+      regs[`reg_pc] <= 'h0000;
+      regs[`reg_flag] <= 'h0000;
+      halt <= 0;
+      mem_addr <= 'h0000;
+      mem_cmd <= `mem_cmd_read;
+      mem_run <= 1;
+      mem_done <= 0;
+      state <= 0;
+   endtask
+   
+   task start_instruction_fetch(input [15:0] addr);
+      mem_addr <= addr;
+      mem_cmd <= `mem_cmd_read;
+      mem_run <= ~mem_run;
+      state <= 0;
+   endtask // start_instruction_fetch
 
    initial begin
-      reset = 1;
-      mem['h0000] = 'h0004;  // LD r0.l, 04h    0000_0ddd_nnnn_nnnn  reg[0][7:0] = 'h04
-      mem['h0001] = 'h0800;  // LD r0.h, 00h    0000_1ddd_nnnn_nnnn  reg[0][15:9] = 'h00
-      mem['h0002] = 'h0101;  // LD r1.l, 01h    0000_0ddd_nnnn_nnnn  reg[1][7:0] = 'h01
-      mem['h0003] = 'h0900;  // LD r1.h, 00h    0000_1ddd_nnnn_nnnn  reg[1][15:9] = 'h00
-      mem['h0004] = 'h0206;  // LD r2.l, 06h    0000_0ddd_nnnn_nnnn  reg[2][7:0] = 'h06
-      mem['h0005] = 'h0a00;  // LD r2.h, 00h    0000_1ddd_nnnn_nnnn  reg[2][15:9] = 'h00
-
-      mem['h0006] = 'h1201;  // ADD r0, r0, r1  0001_001d_ddaa_abbb  reg[0] = reg[0] - reg[1]
-      mem['h0007] = 'h2001;  // ST r0, (r1)     0010_0000_00aa_abbb  store reg[0] to mem[reg[1]]
-      mem['h0008] = 'h00ff;  // LD r0.l, FFh    0000_0ddd_nnnn_nnnn  reg[0][7:0] = 'hff
-      mem['h0009] = 'h2041;  // LD r0, (r1)     0010_0000_01aa_abbb  load reg[0] from mem[reg[1]]
-      mem['h000a] = 'h2432;  // JPNZ (r2)       0010_01ff_ffaa_abbb  move reg[2] to reg[6] if flag[F] is asserted
-      mem['h000b] = 'hf000;  // HALT            1111_0000_0000_0000  halt
+      reset();
    end
 
-   always @(posedge clk) begin
-      if (reset || reset_sw) begin
-      end else begin
-         ins <= mem[`reg_pc];
-      end
-   end
+   `define register(regnum, value) do begin \
+      automatic int register_tmp; \
+      if ((regnum) == `reg_pc) \
+         next_ins_addr = (value); \
+      register_tmp = (value); \
+      regs[regnum] <= register_tmp[15:0]; \
+   end while(0)
 
    always @(negedge clk) begin
-      if (reset || reset_sw) begin
-         reset <= 0;
-         regs[0] <= 'hffff;
-         regs[1] <= 'hffff;
-         regs[2] <= 'hffff;
-         regs[3] <= 'hffff;
-         regs[4] <= 'hffff;
-         regs[5] <= 'hffff;
-         `reg_pc <= 'h0000;
-         `reg_flag <= 'h0000;
-         halt <= 0;
+      automatic int tmp;
+      if (reset_sw) begin
+         reset();
       end else
-      if (!halt) begin
-         automatic int affected_reg = 8;
+      if (halt) begin
+         // halted with no execution
+      end else
+      if (mem_run != mem_done) begin
+         // wait for memory access completion
+      end else
+      case (state)
+      0: begin  // fetch and execution
+         automatic int do_memory_access = 0;
+         automatic int next_ins_addr = regs[`reg_pc] + 1;
          casez (ins)
-         'h0zzz: begin
+         'h0zzz: begin  // 0 zzzz_zzz_zzzz  no operation
+            end
+         'h1zzz:
             case (ins[11])
-            0:  // 0000_0ddd_nnnn_nnnn  load immediate lower half of reg[D]
-              regs[ins[10:8]] <= (regs[ins[10:8]] & 'hff00 | (ins & 'hff));
-            1:  // 0000_1ddd_nnnn_nnnn  load immediate upper half of reg[D]
-              regs[ins[10:8]] <= (regs[ins[10:8]] & 'h00ff | (ins & 'hff) << 8);
+            0:  // 1 0ddd_nnnn_nnnn  load immediate lower half of reg[D]
+              `register(ins[10:8], regs[ins[10:8]] & 'hff00 | (ins & 'hff));
+            1:  // 1 1ddd_nnnn_nnnn  load immediate upper half of reg[D]
+              `register(ins[10:8], regs[ins[10:8]] & 'h00ff | (ins & 'hff) << 8);
             endcase
-            affected_reg = ins[10:8];
-            end
-         'h1zzz: begin
-            case (ins[11:9])
-            0: begin  // 0001_000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
-               regs[ins[8:6]] <= regs[ins[5:3]] + regs[ins[2:0]];
-               `reg_flag_zero <= ((regs[ins[5:3]] - regs[ins[2:0]]) == 0) ? 1 : 0;
-            end
-            1: begin  // 0001_000d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-               regs[ins[8:6]] <= regs[ins[5:3]] - regs[ins[2:0]];
-               `reg_flag_zero <= ((regs[ins[5:3]] - regs[ins[2:0]]) == 0) ? 1 : 0;
-            end
-            endcase
-            affected_reg = ins[8:6];
-            end
          'h2zzz:
+            case (ins[11:9])
+            0: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
+               tmp = regs[ins[5:3]] + regs[ins[2:0]];
+               `register(ins[8:6], tmp);
+               `reg_flag_zero <= (tmp[15:0] == 0) ? 1 : 0;
+            end
+            1: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] - reg[B]
+               tmp = regs[ins[5:3]] - regs[ins[2:0]];
+               `register(ins[8:6], tmp);
+               `reg_flag_zero <= (tmp[15:0] == 0) ? 1 : 0;
+            end
+            endcase
+         'h3zzz:
             casez (ins[11:6])
-            'b000000:  // 0010_0000_00aa_abbb  store reg[A] to mem[reg[B]]
-                mem[regs[ins[2:0]]] <= regs[ins[5:3]];
-            'b000001: begin  // 0010_0000_01aa_abbb  load reg[A] from mem[reg[B]]
-                 regs[ins[5:3]] <= mem[regs[ins[2:0]]];
-                 affected_reg = ins[5:3];
-              end
-            'b000010: begin  // 0010_0000_10aa_abbb  move reg[B] to reg[A]
-                 regs[ins[5:3]] <= regs[ins[2:0]];
-                 affected_reg = ins[5:3];
-              end
-            'b01zzzz:  // 0010_0100_00aa_abbb  move reg[B] to reg[A] if not flag[F]
-               if (!`reg_flag[ins[9:6]]) begin
-                  regs[ins[5:3]] <= regs[ins[2:0]];
-                  affected_reg = ins[5:3];
+            'b000000: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
+               mem_addr <= regs[ins[2:0]];
+               mem_wr_data <= regs[ins[5:3]];
+               mem_cmd <= `mem_cmd_write;
+               mem_run <= ~mem_run;
+               do_memory_access = 1;
                end
-            'b10zzzz:  // 0010_10ff_ffaa_abbb  move reg[B] to reg[A] if flag[F]
-               if (`reg_flag[ins[9:6]]) begin
-                  regs[ins[5:3]] <= regs[ins[2:0]];
-                  affected_reg = ins[5:3];
+            'b000001: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
+               mem_addr <= regs[ins[2:0]];
+               mem_rd_reg <= ins[5:3];
+               mem_cmd <= `mem_cmd_read;
+               mem_run <= ~mem_run;
+               do_memory_access = 1;
                end
+            'b000010:  // 3 0000_10aa_abbb  move reg[B] to reg[A]
+               `register(ins[5:3], regs[ins[2:0]]);
+            'b01zzzz:  // 3 0100_00aa_abbb  move reg[B] to reg[A] if not flag[F]
+               if (!regs[`reg_flag][ins[9:6]])
+                  `register(ins[5:3], regs[ins[2:0]]);
+            'b10zzzz:  // 3 10ff_ffaa_abbb  move reg[B] to reg[A] if flag[F]
+               if (regs[`reg_flag][ins[9:6]])
+                  `register(ins[5:3], regs[ins[2:0]]);
             endcase
          'hfzzz:
             case (ins[11:0])
-            0: begin  // 1111_0000_0000_0000  halt
+            0: begin  // f 0000_0000_0000  halt
                halt <= 1;
-               affected_reg = 6;  // pc
                end
             endcase
-         endcase
-         if (affected_reg != 6)
-           `reg_pc <= `reg_pc + 1;
+         endcase // casez (ins)
+         regs[`reg_pc] <= next_ins_addr[15:0];
+         if (do_memory_access)
+            state <= 1;
+         else
+            start_instruction_fetch(next_ins_addr);
       end
-   end
+      1: begin  // memory access completion
+         if (mem_cmd == `mem_cmd_read)
+            regs[mem_rd_reg] <= mem_rd_data;
+         if (mem_rd_reg == `reg_pc)
+            start_instruction_fetch(mem_rd_data);
+         else
+            start_instruction_fetch(regs[`reg_pc]);
+      end
+      endcase // case (state)
+   end // always @ (negedge clk)
 
    max7219_display #( .NUM_CASCADES(NUM_CASCADES), .INTENSITY(1) )
      disp(sysclk, reset_sw, frame, spi_clk, dout, cs, stop, pin);
+
+endmodule
+
+
+module memory(
+   input wire clk,
+   input wire reset,
+   input wire [15:0] addr,
+   input wire [1:0] cmd,
+   input wire run,
+   input wire [15:0] wr_data,
+   ref [15:0] rd_data,
+   ref done
+   );
+
+   reg [15:0] mem[1024*32];  // 32K words
+   int state = 0;
+
+   initial begin
+      mem['h0000] = 'h1004;  // LD r0.l, 04h    1 0ddd_nnnn_nnnn  reg[0][7:0] = 'h04
+      mem['h0001] = 'h1800;  // LD r0.h, 00h    1 1ddd_nnnn_nnnn  reg[0][15:9] = 'h00
+      mem['h0002] = 'h1101;  // LD r1.l, 0fh    1 0ddd_nnnn_nnnn  reg[1][7:0] = 'h01
+      mem['h0003] = 'h1900;  // LD r1.h, 00h    1 1ddd_nnnn_nnnn  reg[1][15:9] = 'h00
+      mem['h0004] = 'h1208;  // LD r2.l, 08h    1 0ddd_nnnn_nnnn  reg[2][7:0] = 'h08
+      mem['h0005] = 'h1a00;  // LD r2.h, 00h    1 1ddd_nnnn_nnnn  reg[2][15:9] = 'h00
+      mem['h0006] = 'h130f;  // LD r3.l, 0fh    1 0ddd_nnnn_nnnn  reg[3][7:0] = 'h0f
+      mem['h0007] = 'h1b00;  // LD r3.h, 00h    1 1ddd_nnnn_nnnn  reg[3][15:9] = 'h00
+
+      mem['h0008] = 'h2201;  // SUB r0, r0, r1  2 001d_ddaa_abbb  reg[0] = reg[0] - reg[1]
+      mem['h0009] = 'h3003;  // ST r0, (r3)     3 0000_00aa_abbb  store reg[0] to mem[reg[3]]
+      mem['h000a] = 'h10ff;  // LD r0.l, FFh    1 0ddd_nnnn_nnnn  reg[0][7:0] = 'hff
+      mem['h000b] = 'h3043;  // LD r0, (r3)     3 0000_01aa_abbb  load reg[0] from mem[reg[3]]
+      mem['h000c] = 'h3432;  // JPNZ (r2)       3 01ff_ffaa_abbb  move reg[2] to reg[6] if flag[F]
+      mem['h000d] = 'h0000;  // NOP             0 zzzz_zzzz_zzzz  nop
+      mem['h000e] = 'hf000;  // HALT            f 0000_0000_0000  halt
+      mem['h000f] = 'h0000;  // work area
+   end
+
+   always @(posedge clk) begin
+      if (reset) begin
+         state <= 0;
+         done <= 0;
+      end else begin
+         case (state)
+         0: begin
+            if (run != done) begin
+               case (cmd)
+               `mem_cmd_read:
+                  rd_data <= mem[addr];
+               `mem_cmd_write:
+                  mem[addr] <= wr_data;
+               endcase
+               done <= ~done;
+               state <= 0;  // there is only one state, no transition
+            end
+         end
+         endcase
+      end // else: !if(reset)
+   end // always @ (posedge clk)
 
 endmodule
