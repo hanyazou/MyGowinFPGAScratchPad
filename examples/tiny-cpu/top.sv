@@ -1,6 +1,6 @@
-`define mem_cmd_nop 2'b00
-`define mem_cmd_read 2'b01
-`define mem_cmd_write 2'b10
+const int mem_cmd_nop = 2'b00;
+const int mem_cmd_read = 2'b01;
+const int mem_cmd_write = 2'b10;
 
 module top(
    input logic sysclk, S1, S2,
@@ -34,9 +34,9 @@ module top(
    wire reset_sw;
    assign reset_sw = S2;
 
-   `define reg_pc 6
-   `define reg_flag 7
-   `define reg_flag_zero regs[`reg_flag][0]
+   const int reg_pc = 6;
+   const int reg_flag = 7;
+   const int reg_flag_zero = 0;
 
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
@@ -47,7 +47,7 @@ module top(
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
    assign frame[6] = { state[3:0], mem_cmd[1:0], mem_run, mem_done };
-   assign frame[7] = regs[`reg_flag][7:0];
+   assign frame[7] = regs[reg_flag][7:0];
 
    memory mem(clk, reset_sw, mem_addr, mem_cmd, mem_run, mem_wr_data, mem_rd_data, mem_done);
 
@@ -58,18 +58,18 @@ module top(
       regs[3] <= 'hffff;
       regs[4] <= 'hffff;
       regs[5] <= 'hffff;
-      regs[`reg_pc] <= 'h0000;
-      regs[`reg_flag] <= 'h0000;
+      regs[reg_pc] <= 'h0000;
+      regs[reg_flag] <= 'h0000;
       halt <= 0;
       mem_addr <= 'h0000;
-      mem_cmd <= `mem_cmd_read;
+      mem_cmd <= mem_cmd_read;
       mem_run <= 1;
       state <= 0;
    endtask
    
    task start_instruction_fetch(input [15:0] addr);
       mem_addr <= addr;
-      mem_cmd <= `mem_cmd_read;
+      mem_cmd <= mem_cmd_read;
       mem_run <= ~mem_run;
       state <= 0;
    endtask // start_instruction_fetch
@@ -80,7 +80,7 @@ module top(
 
    `define register(regnum, value) do begin \
       automatic int register_tmp; \
-      if ((regnum) == `reg_pc) \
+      if ((regnum) == reg_pc) \
          next_ins_addr = (value); \
       register_tmp = (value); \
       regs[regnum] <= register_tmp[15:0]; \
@@ -100,7 +100,7 @@ module top(
       case (state)
       0: begin  // fetch and execution
          automatic int do_memory_access = 0;
-         automatic int next_ins_addr = regs[`reg_pc] + 1;
+         automatic int next_ins_addr = regs[reg_pc] + 1;
          casez (ins)
          'h0zzz: begin  // 0 zzzz_zzz_zzzz  no operation
             end
@@ -116,12 +116,12 @@ module top(
             0: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
                tmp = regs[ins[5:3]] + regs[ins[2:0]];
                `register(ins[8:6], tmp);
-               `reg_flag_zero <= (tmp[15:0] == 0) ? 1 : 0;
+               regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
             end
             1: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] - reg[B]
                tmp = regs[ins[5:3]] - regs[ins[2:0]];
                `register(ins[8:6], tmp);
-               `reg_flag_zero <= (tmp[15:0] == 0) ? 1 : 0;
+               regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
             end
             endcase
          'h3zzz:
@@ -129,24 +129,24 @@ module top(
             'b000000: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
                mem_addr <= regs[ins[2:0]];
                mem_wr_data <= regs[ins[5:3]];
-               mem_cmd <= `mem_cmd_write;
+               mem_cmd <= mem_cmd_write;
                mem_run <= ~mem_run;
                do_memory_access = 1;
                end
             'b000001: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
                mem_addr <= regs[ins[2:0]];
                mem_rd_reg <= ins[5:3];
-               mem_cmd <= `mem_cmd_read;
+               mem_cmd <= mem_cmd_read;
                mem_run <= ~mem_run;
                do_memory_access = 1;
                end
             'b000010:  // 3 0000_10aa_abbb  move reg[B] to reg[A]
                `register(ins[5:3], regs[ins[2:0]]);
             'b01zzzz:  // 3 0100_00aa_abbb  move reg[B] to reg[A] if not flag[F]
-               if (!regs[`reg_flag][ins[9:6]])
+               if (!regs[reg_flag][ins[9:6]])
                   `register(ins[5:3], regs[ins[2:0]]);
             'b10zzzz:  // 3 10ff_ffaa_abbb  move reg[B] to reg[A] if flag[F]
-               if (regs[`reg_flag][ins[9:6]])
+               if (regs[reg_flag][ins[9:6]])
                   `register(ins[5:3], regs[ins[2:0]]);
             endcase
          'hfzzz:
@@ -156,19 +156,19 @@ module top(
                end
             endcase
          endcase // casez (ins)
-         regs[`reg_pc] <= next_ins_addr[15:0];
+         regs[reg_pc] <= next_ins_addr[15:0];
          if (do_memory_access)
             state <= 1;
          else
             start_instruction_fetch(next_ins_addr);
       end
       1: begin  // memory access completion
-         if (mem_cmd == `mem_cmd_read)
+         if (mem_cmd == mem_cmd_read)
             regs[mem_rd_reg] <= mem_rd_data;
-         if (mem_rd_reg == `reg_pc)
+         if (mem_rd_reg == reg_pc)
             start_instruction_fetch(mem_rd_data);
          else
-            start_instruction_fetch(regs[`reg_pc]);
+            start_instruction_fetch(regs[reg_pc]);
       end
       endcase // case (state)
    end // always @ (negedge clk)
@@ -223,9 +223,9 @@ module memory(
          0: begin
             if (run != done) begin
                case (cmd)
-               `mem_cmd_read:
+               mem_cmd_read:
                   rd_data <= mem[addr];
-               `mem_cmd_write:
+               mem_cmd_write:
                   mem[addr] <= wr_data;
                endcase
                done <= ~done;
