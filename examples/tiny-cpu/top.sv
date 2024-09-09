@@ -1,12 +1,15 @@
-const int mem_cmd_nop = 2'b00;
-const int mem_cmd_read = 2'b01;
-const int mem_cmd_write = 2'b10;
+const int bus_cmd_nop = 2'b00;
+const int bus_cmd_read = 2'b01;
+const int bus_cmd_write = 2'b10;
 
 module top(
    input logic sysclk, S1, S2,
    output logic spi_clk, dout, cs, stop,
    output logic [10:1] pin
    );
+
+   parameter int BUS_NIPS = 1;
+   parameter int BUS_MEM = 0;
 
    wire [15:0] pc;
    wire [15:0] flag;
@@ -15,14 +18,14 @@ module top(
    reg [15:0] regs[8];
    reg [3:0] state;
 
-   reg [15:0] mem_addr;
-   reg [1:0] mem_cmd;
-   reg mem_run;
-   reg [15:0] mem_wr_data;
-   reg [15:0] mem_rd_data;
-   wire mem_done;
-   reg [2:0] mem_rd_reg;
-   assign ins = mem_rd_data;
+   reg [15:0] bus_addr;
+   reg [1:0] bus_cmd;
+   reg bus_run[BUS_NIPS];
+   reg [15:0] bus_wr_data;
+   reg [15:0] bus_rd_data[BUS_NIPS];
+   wire bus_done[BUS_NIPS];
+   reg [2:0] bus_rd_reg;
+   assign ins = bus_rd_data[BUS_MEM];
 
    logic [63:0] counter = 0;
    always @(posedge sysclk)
@@ -40,16 +43,17 @@ module top(
 
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
-   assign frame[0] = mem_addr[15:8];
-   assign frame[1] = mem_addr[7:0];
+   assign frame[0] = bus_addr[15:8];
+   assign frame[1] = bus_addr[7:0];
    assign frame[2] = ins[15:8];
    assign frame[3] = ins[7:0];
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
-   assign frame[6] = { state[3:0], mem_cmd[1:0], mem_run, mem_done };
+   assign frame[6] = { state[3:0], bus_cmd[1:0], bus_run[BUS_MEM], bus_done[BUS_MEM] };
    assign frame[7] = regs[reg_flag][7:0];
 
-   memory mem(clk, reset_sw, mem_addr, mem_cmd, mem_run, mem_wr_data, mem_rd_data, mem_done);
+   memory mem(clk, reset_sw, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
+              bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
 
    task reset();
       regs[0] <= 'hffff;
@@ -61,16 +65,16 @@ module top(
       regs[reg_pc] <= 'h0000;
       regs[reg_flag] <= 'h0000;
       halt <= 0;
-      mem_addr <= 'h0000;
-      mem_cmd <= mem_cmd_read;
-      mem_run <= 1;
+      bus_addr <= 'h0000;
+      bus_cmd <= bus_cmd_read;
+      bus_run[BUS_MEM] <= 1;
       state <= 0;
    endtask
    
    task start_instruction_fetch(input [15:0] addr);
-      mem_addr <= addr;
-      mem_cmd <= mem_cmd_read;
-      mem_run <= ~mem_run;
+      bus_addr <= addr;
+      bus_cmd <= bus_cmd_read;
+      bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
       state <= 0;
    endtask // start_instruction_fetch
 
@@ -94,7 +98,7 @@ module top(
       if (halt) begin
          // halted with no execution
       end else
-      if (mem_run != mem_done) begin
+      if (bus_run[BUS_MEM] != bus_done[BUS_MEM]) begin
          // wait for memory access completion
       end else
       case (state)
@@ -127,17 +131,17 @@ module top(
          'h3zzz:
             casez (ins[11:6])
             'b000000: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
-               mem_addr <= regs[ins[2:0]];
-               mem_wr_data <= regs[ins[5:3]];
-               mem_cmd <= mem_cmd_write;
-               mem_run <= ~mem_run;
+               bus_addr <= regs[ins[2:0]];
+               bus_wr_data <= regs[ins[5:3]];
+               bus_cmd <= bus_cmd_write;
+               bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
                do_memory_access = 1;
                end
             'b000001: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
-               mem_addr <= regs[ins[2:0]];
-               mem_rd_reg <= ins[5:3];
-               mem_cmd <= mem_cmd_read;
-               mem_run <= ~mem_run;
+               bus_addr <= regs[ins[2:0]];
+               bus_rd_reg <= ins[5:3];
+               bus_cmd <= bus_cmd_read;
+               bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
                do_memory_access = 1;
                end
             'b000010:  // 3 0000_10aa_abbb  move reg[B] to reg[A]
@@ -163,10 +167,10 @@ module top(
             start_instruction_fetch(next_ins_addr);
       end
       1: begin  // memory access completion
-         if (mem_cmd == mem_cmd_read)
-            regs[mem_rd_reg] <= mem_rd_data;
-         if (mem_rd_reg == reg_pc)
-            start_instruction_fetch(mem_rd_data);
+         if (bus_cmd == bus_cmd_read)
+            regs[bus_rd_reg] <= bus_rd_data[BUS_MEM];
+         if (bus_rd_reg == reg_pc)
+            start_instruction_fetch(bus_rd_data[BUS_MEM]);
          else
             start_instruction_fetch(regs[reg_pc]);
       end
@@ -223,9 +227,9 @@ module memory(
          0: begin
             if (run != done) begin
                case (cmd)
-               mem_cmd_read:
+               bus_cmd_read:
                   rd_data <= mem[addr];
-               mem_cmd_write:
+               bus_cmd_write:
                   mem[addr] <= wr_data;
                endcase
                done <= ~done;
