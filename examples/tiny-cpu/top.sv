@@ -25,6 +25,8 @@ module top(
    reg [15:0] bus_rd_data[BUS_NIPS];
    wire bus_done[BUS_NIPS];
    reg [2:0] bus_rd_reg;
+   wire bus_busy;
+   assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]);
    assign ins = bus_rd_data[BUS_MEM];
 
    logic [63:0] counter = 0;
@@ -98,7 +100,7 @@ module top(
       if (halt) begin
          // halted with no execution
       end else
-      if (bus_run[BUS_MEM] != bus_done[BUS_MEM]) begin
+      if (bus_busy) begin
          // wait for memory access completion
       end else
       case (state)
