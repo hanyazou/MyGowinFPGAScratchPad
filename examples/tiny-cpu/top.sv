@@ -72,13 +72,17 @@ module top(
       bus_run[BUS_MEM] <= 1;
       state <= 0;
    endtask
-   
+
    task start_instruction_fetch(input [15:0] addr);
-      bus_addr <= addr;
-      bus_cmd <= bus_cmd_read;
-      bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
+      bus_run_cmd(BUS_MEM, bus_cmd_read, addr);
       state <= 0;
    endtask // start_instruction_fetch
+
+   task bus_run_cmd(input int ip, input int cmd, input [15:0] addr);
+      bus_cmd <= cmd;
+      bus_addr <= addr;
+      bus_run[ip] <= ~bus_run[ip];
+   endtask
 
    initial begin
       reset();
@@ -133,17 +137,13 @@ module top(
          'h3zzz:
             casez (ins[11:6])
             'b000000: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
-               bus_addr <= regs[ins[2:0]];
                bus_wr_data <= regs[ins[5:3]];
-               bus_cmd <= bus_cmd_write;
-               bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
+               bus_run_cmd(BUS_MEM, bus_cmd_write, regs[ins[2:0]]);
                do_memory_access = 1;
                end
             'b000001: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
-               bus_addr <= regs[ins[2:0]];
                bus_rd_reg <= ins[5:3];
-               bus_cmd <= bus_cmd_read;
-               bus_run[BUS_MEM] <= ~bus_run[BUS_MEM];
+               bus_run_cmd(BUS_MEM, bus_cmd_read, regs[ins[2:0]]);
                do_memory_access = 1;
                end
             'b000010:  // 3 0000_10aa_abbb  move reg[B] to reg[A]
