@@ -27,7 +27,9 @@ module top(
    reg [2:0] bus_rd_reg;
    wire bus_busy;
    assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]);
+
    assign ins = bus_rd_data[BUS_MEM];
+   int  next_ins_addr;
 
    logic [63:0] counter = 0;
    always @(posedge sysclk)
@@ -88,13 +90,12 @@ module top(
       reset();
    end
 
-   `define register(regnum, value) do begin \
-      automatic int register_tmp; \
-      if ((regnum) == reg_pc) \
-         next_ins_addr = (value); \
-      register_tmp = (value); \
-      regs[regnum] <= register_tmp[15:0]; \
-   end while(0)
+   task register_(input int regnum, input [15:0] value);
+      if ((regnum) == reg_pc)
+         next_ins_addr = value;
+      regs[regnum] <= value;
+   endtask
+   `define register(regnum, value) register_(regnum, value)
 
    always @(negedge clk) begin
       automatic int tmp;
@@ -110,7 +111,7 @@ module top(
       case (state)
       0: begin  // fetch and execution
          automatic int do_memory_access = 0;
-         automatic int next_ins_addr = regs[reg_pc] + 1;
+         next_ins_addr = regs[reg_pc] + 1;
          casez (ins)
          'h0zzz: begin  // 0 zzzz_zzz_zzzz  no operation
             end
