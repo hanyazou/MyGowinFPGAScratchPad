@@ -20,7 +20,7 @@ module top(
    reg mem_run;
    reg [15:0] mem_wr_data;
    reg [15:0] mem_rd_data;
-   reg mem_done;
+   wire mem_done;
    reg [2:0] mem_rd_reg;
    assign ins = mem_rd_data;
 
@@ -64,7 +64,6 @@ module top(
       mem_addr <= 'h0000;
       mem_cmd <= `mem_cmd_read;
       mem_run <= 1;
-      mem_done <= 0;
       state <= 0;
    endtask
    
@@ -188,13 +187,14 @@ module memory(
    input wire run,
    input wire [15:0] wr_data,
    ref [15:0] rd_data,
-   ref done
+   output logic done
    );
 
    reg [15:0] mem[1024*32];  // 32K words
    int state = 0;
 
    initial begin
+      done <= 0;
       mem['h0000] = 'h1004;  // LD r0.l, 04h    1 0ddd_nnnn_nnnn  reg[0][7:0] = 'h04
       mem['h0001] = 'h1800;  // LD r0.h, 00h    1 1ddd_nnnn_nnnn  reg[0][15:9] = 'h00
       mem['h0002] = 'h1101;  // LD r1.l, 0fh    1 0ddd_nnnn_nnnn  reg[1][7:0] = 'h01
