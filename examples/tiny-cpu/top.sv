@@ -1,3 +1,50 @@
+const int reg_pc = 6;
+const int reg_flag = 7;
+const int reg_flag_zero = 0;
+
+//  0 zzzz_zzzz_zzzz  nop
+function [15:0] I_NOP;
+   return { 4'h0, 12'bzzzz_zzzz_zzzz };
+endfunction
+
+//  1 0ddd_nnnn_nnnn  reg[0][7:0] = 8'hzz
+function [15:0] I_LD_IL(input [2:0] r, input [7:0] i);
+   return { 4'h1, 1'b0, r, i};
+endfunction
+
+//  1 1ddd_nnnn_nnnn  reg[0][15:8] = 8'hzz
+function [15:0] I_LD_IH(input [2:0] r, input [7:0] i);
+   return { 4'h1, 1'b1, r, i};
+endfunction
+
+//  2 001d_ddaa_abbb  reg[dst] = reg[ra] - reg[rb]
+function [15:0] I_SUB(input [2:0] dst, input [2:0] ra, input [2:0] rb);
+   return { 4'h2, 3'b001, dst, ra, rb };
+endfunction
+
+//  3 0000_00aa_abbb  store reg[ra] to mem[reg[rb]]
+function [15:0] I_ST(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0000_00, ra, rb };
+endfunction
+
+//  3 0000_01aa_abbb  load reg[ra] from mem[reg[rb]]
+function [15:0] I_LD_M(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0000_01, ra, rb };
+endfunction
+
+//  3 01ff_ffaa_abbb  move reg[ra] to reg[rb] if flag[F]
+function [15:0] I_MVNF(input [2:0] ra, input [2:0] rb, input [3:0] flag);
+   return { 4'h3, 2'b01, flag, ra, rb };
+endfunction
+function [15:0] I_JPNZ(input [2:0] r);
+   return I_MVNF(reg_pc, r, reg_flag_zero);
+endfunction
+
+//  f 0000_0000_0000  halt
+function [15:0] I_HALT;
+   return { 4'hf, 12'b0000_0000_0000 };
+endfunction
+
 const int bus_cmd_nop = 2'b00;
 const int bus_cmd_read = 2'b01;
 const int bus_cmd_write = 2'b10;
@@ -40,10 +87,6 @@ module top(
    assign clk = counter[24];
    wire reset_sw;
    assign reset_sw = S2;
-
-   const int reg_pc = 6;
-   const int reg_flag = 7;
-   const int reg_flag_zero = 0;
 
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
@@ -202,23 +245,23 @@ module memory(
 
    initial begin
       done <= 0;
-      mem['h0000] = 'h1004;  // LD r0.l, 04h    1 0ddd_nnnn_nnnn  reg[0][7:0] = 'h04
-      mem['h0001] = 'h1800;  // LD r0.h, 00h    1 1ddd_nnnn_nnnn  reg[0][15:9] = 'h00
-      mem['h0002] = 'h1101;  // LD r1.l, 0fh    1 0ddd_nnnn_nnnn  reg[1][7:0] = 'h01
-      mem['h0003] = 'h1900;  // LD r1.h, 00h    1 1ddd_nnnn_nnnn  reg[1][15:9] = 'h00
-      mem['h0004] = 'h1208;  // LD r2.l, 08h    1 0ddd_nnnn_nnnn  reg[2][7:0] = 'h08
-      mem['h0005] = 'h1a00;  // LD r2.h, 00h    1 1ddd_nnnn_nnnn  reg[2][15:9] = 'h00
-      mem['h0006] = 'h130f;  // LD r3.l, 0fh    1 0ddd_nnnn_nnnn  reg[3][7:0] = 'h0f
-      mem['h0007] = 'h1b00;  // LD r3.h, 00h    1 1ddd_nnnn_nnnn  reg[3][15:9] = 'h00
+      mem['h0000] = I_LD_IL(0, 'h04);  // LD r0.l, 04h
+      mem['h0001] = I_LD_IH(0, 'h00);  // LD r0.h, 00h
+      mem['h0002] = I_LD_IL(1, 'h01);  // LD r1.l, 01h
+      mem['h0003] = I_LD_IH(1, 'h00);  // LD r1.h, 00h
+      mem['h0004] = I_LD_IL(2, 'h08);  // LD r2.l, 08h
+      mem['h0005] = I_LD_IH(2, 'h00);  // LD r2.h, 00h
+      mem['h0006] = I_LD_IL(3, 'h0f);  // LD r3.l, 0fh
+      mem['h0007] = I_LD_IH(3, 'h00);  // LD r3.h, 00h
 
-      mem['h0008] = 'h2201;  // SUB r0, r0, r1  2 001d_ddaa_abbb  reg[0] = reg[0] - reg[1]
-      mem['h0009] = 'h3003;  // ST r0, (r3)     3 0000_00aa_abbb  store reg[0] to mem[reg[3]]
-      mem['h000a] = 'h10ff;  // LD r0.l, FFh    1 0ddd_nnnn_nnnn  reg[0][7:0] = 'hff
-      mem['h000b] = 'h3043;  // LD r0, (r3)     3 0000_01aa_abbb  load reg[0] from mem[reg[3]]
-      mem['h000c] = 'h3432;  // JPNZ (r2)       3 01ff_ffaa_abbb  move reg[2] to reg[6] if flag[F]
-      mem['h000d] = 'h0000;  // NOP             0 zzzz_zzzz_zzzz  nop
-      mem['h000e] = 'hf000;  // HALT            f 0000_0000_0000  halt
-      mem['h000f] = 'h0000;  // work area
+      mem['h0008] = I_SUB(0, 0, 1);    // SUB r0, r0, r1
+      mem['h0009] = I_ST(0, 3);        // ST r0, (r3)
+      mem['h000a] = I_LD_IL(0, 'hff);  // LD r0.l, FFh
+      mem['h000b] = I_LD_M(0, 3);      // LD r0, (r3)
+      mem['h000c] = I_JPNZ(2);         // JPNZ (r2)
+      mem['h000d] = I_NOP;             // NOP
+      mem['h000e] = I_HALT;            // HALT
+      mem['h000f] = 'h0000;            // work area
    end
 
    always @(posedge clk) begin
