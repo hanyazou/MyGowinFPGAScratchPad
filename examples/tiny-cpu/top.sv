@@ -154,7 +154,7 @@ module top(
       case (state)
       0: begin  // fetch and execution
          automatic int do_memory_access = 0;
-         next_ins_addr = regs[reg_pc] + 1;
+         next_ins_addr = regs[reg_pc] + 2;
          casez (ins)
          'h0zzz: begin  // 0 zzzz_zzz_zzzz  no operation
             end
@@ -243,25 +243,30 @@ module memory(
    reg [15:0] mem[1024*32];  // 32K words
    int state = 0;
 
+   function void dw([15:0] addr, [15:0] data);
+      mem[addr[15:1]] = data[15:0];
+   endfunction
+
    initial begin
       done <= 0;
-      mem['h0000] = I_LD_IL(0, 'h04);  // LD r0.l, 04h
-      mem['h0001] = I_LD_IH(0, 'h00);  // LD r0.h, 00h
-      mem['h0002] = I_LD_IL(1, 'h01);  // LD r1.l, 01h
-      mem['h0003] = I_LD_IH(1, 'h00);  // LD r1.h, 00h
-      mem['h0004] = I_LD_IL(2, 'h08);  // LD r2.l, 08h
-      mem['h0005] = I_LD_IH(2, 'h00);  // LD r2.h, 00h
-      mem['h0006] = I_LD_IL(3, 'h0f);  // LD r3.l, 0fh
-      mem['h0007] = I_LD_IH(3, 'h00);  // LD r3.h, 00h
+      dw('h0000, I_LD_IL(0, 'h04));  // LD r0.l, 04h
+      dw('h0002, I_LD_IH(0, 'h00));  // LD r0.h, 00h
+      dw('h0004, I_LD_IL(1, 'h01));  // LD r1.l, 01h
+      dw('h0006, I_LD_IH(1, 'h00));  // LD r1.h, 00h
+      dw('h0008, I_LD_IL(2, 'h10));  // LD r2.l, 10h
+      dw('h000a, I_LD_IH(2, 'h00));  // LD r2.h, 00h
+      dw('h000c, I_LD_IL(3, 'h20));  // LD r3.l, 20h
+      dw('h000e, I_LD_IH(3, 'h00));  // LD r3.h, 00h
 
-      mem['h0008] = I_SUB(0, 0, 1);    // SUB r0, r0, r1
-      mem['h0009] = I_ST(0, 3);        // ST r0, (r3)
-      mem['h000a] = I_LD_IL(0, 'hff);  // LD r0.l, FFh
-      mem['h000b] = I_LD_M(0, 3);      // LD r0, (r3)
-      mem['h000c] = I_JPNZ(2);         // JPNZ (r2)
-      mem['h000d] = I_NOP;             // NOP
-      mem['h000e] = I_HALT;            // HALT
-      mem['h000f] = 'h0000;            // work area
+      dw('h0010, I_SUB(0, 0, 1));    // SUB r0, r0, r1
+      dw('h0012, I_ST(0, 3));        // ST r0, (r3)
+      dw('h0014, I_LD_IL(0, 'hff));  // LD r0.l, FFh
+      dw('h0016, I_LD_M(0, 3));      // LD r0, (r3)
+      dw('h0018, I_JPNZ(2));         // JPNZ (r2)
+      dw('h001a, I_NOP());           // NOP
+      dw('h001c, I_HALT());          // HALT
+
+      dw('h0020, 'h0000);            // work area
    end
 
    always @(posedge clk) begin
@@ -274,9 +279,9 @@ module memory(
             if (run != done) begin
                case (cmd)
                bus_cmd_read:
-                  rd_data <= mem[addr];
+                  rd_data <= mem[addr[15:1]];
                bus_cmd_write:
-                  mem[addr] <= wr_data;
+                  mem[addr[15:1]] <= wr_data;
                endcase
                done <= ~done;
                state <= 0;  // there is only one state, no transition
