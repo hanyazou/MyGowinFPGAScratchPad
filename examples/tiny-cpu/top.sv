@@ -311,6 +311,7 @@ module memory(
                   rd_data <= mem[addr[15:1]];
                bus_cmd_write:
                   mem[addr[15:1]] <= wr_data;
+                 /*
                bus_cmd_read_b:
                  if (addr[0])
                    rd_data <= { 'h00, mem[addr[15:1]][15:8] };
@@ -321,6 +322,7 @@ module memory(
                    mem[addr[15:1]] <= { wr_data[7:0], mem[addr[15:1]][7:0] };
                  else
                    mem[addr[15:1]] <= { mem[addr[15:1]][15:8], wr_data[7:0] };
+                  */
                endcase
                done <= ~done;
                state <= 0;  // there is only one state, no transition
