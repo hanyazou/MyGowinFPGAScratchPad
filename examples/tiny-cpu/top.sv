@@ -284,16 +284,16 @@ module memory(
       mem['h0007] = I_LD_IH(3, 'h00);  // LD r3.h, 00h
 
       mem['h0008] = I_SUB(0, 0, 1);    // SUB r0, r0, r1
-      //mem['h0009] = I_ST(0, 3);        // ST r0, (r3)
-      mem['h0009] = I_NOP;
+      //mem['h0009] = I_ST(0, 3);      // ST r0, (r3)
+      mem['h0009] = I_NOP();
       mem['h000a] = I_STB(0, 3);       // ST r0.l, (r3)
       mem['h000b] = I_LD_IL(0, 'hff);  // LD r0.l, FFh
-      //mem['h000c] = I_LD_M(0, 3);      // LD r0, (r3)
-      mem['h000c] = I_NOP;
+      //mem['h000c] = I_LD_M(0, 3);    // LD r0, (r3)
+      mem['h000c] = I_NOP();
       mem['h000d] = I_LD_MB(0, 3);     // LD r0.l, (r3)
       mem['h000e] = I_JPNZ(2);         // JPNZ (r2)
-      mem['h000f] = I_NOP;             // NOP
-      mem['h0010] = I_HALT;            // HALT
+      mem['h000f] = I_NOP();           // NOP
+      mem['h0010] = I_HALT();          // HALT
 
       mem['h0020] = 'h0000;            // work area
    end
@@ -313,9 +313,9 @@ module memory(
                   mem[addr[15:1]] <= wr_data;
                bus_cmd_read_b:
                  if (addr[0])
-                   rd_data <= { 'h00, mem[addr[15:1]][15:8] };
+                   rd_data <= { 8'h00, mem[addr[15:1]][15:8] };
                  else
-                   rd_data <= { 'h00, mem[addr[15:1]][7:0] };
+                   rd_data <= { 8'h00, mem[addr[15:1]][7:0] };
                bus_cmd_write_b:
                  if (addr[0])
                    mem[addr[15:1]] <= { wr_data[7:0], mem[addr[15:1]][7:0] };
