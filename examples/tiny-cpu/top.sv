@@ -32,14 +32,14 @@ function [15:0] I_LD_M(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_01, ra, rb };
 endfunction
 
-//  3 0000_00aa_abbb  store reg[ra] to mem[reg[rb]]
+//  3 0000_10aa_abbb  store reg[ra] to mem[reg[rb]]
 function [15:0] I_STB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_00, ra, rb };
+   return { 4'h3, 6'b0000_10, ra, rb };
 endfunction
 
-// 3 0001_01aa_abbb  load reg[A][7:0] from mem[reg[B]]
+// 3 0001_11aa_abbb  load reg[A][7:0] from mem[reg[B]]
 function [15:0] I_LD_MB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_01, ra, rb };
+   return { 4'h3, 6'b0000_11, ra, rb };
 endfunction
 
 //  3 01ff_ffaa_abbb  move reg[ra] to reg[rb] if flag[F]
@@ -239,12 +239,12 @@ module top(
             // memory read/write (word)
             //
             casez (ins[11:6])
-            'b000000: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
+            'b0000_00: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
                bus_wr_data <= regs[ins[5:3]];
                bus_run_cmd(BUS_MEM, bus_cmd_write, regs[ins[2:0]]);
                do_memory_access = 1;
                end
-            'b000001: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
+            'b0000_01: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
                bus_rd_reg <= ins[5:3];
                bus_run_cmd(BUS_MEM, bus_cmd_read, regs[ins[2:0]]);
                do_memory_access = 1;
@@ -252,17 +252,20 @@ module top(
             //
             // memory read/write (byte)
             //
-            'b000100: begin  // 3 0001_00aa_abbb  store reg[A][7:0] to mem[reg[B]]
+            'b0000_10: begin  // 3 0001_00aa_abbb  store reg[A][7:0] to mem[reg[B]]
                bus_wr_data <= regs[ins[5:3]];
                bus_run_cmd(BUS_MEM, bus_cmd_write_b, regs[ins[2:0]]);
                do_memory_access = 1;
                end
-            'b000101: begin  // 3 0001_01aa_abbb  load reg[A][7:0] from mem[reg[B]]
+            'b0000_11: begin  // 3 0001_01aa_abbb  load reg[A][7:0] from mem[reg[B]]
                bus_rd_reg <= ins[5:3];
                bus_run_cmd(BUS_MEM, bus_cmd_read_b, regs[ins[2:0]]);
                do_memory_access = 1;
                end
-            'b001000:  // 3 0010_10aa_abbb  move reg[B] to reg[A]
+            //
+            // move / conditional move
+            //
+            'b0010_00:  // 3 0010_10aa_abbb  move reg[B] to reg[A]
                `register(ins[5:3], regs[ins[2:0]]);
             'b01zzzz:  // 3 0100_00aa_abbb  move reg[B] to reg[A] if not flag[F]
                if (!regs[reg_flag][ins[9:6]])
