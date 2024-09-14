@@ -66,6 +66,7 @@ module top(
    output logic [10:1] pin
    );
 
+   parameter SYSCLK_FREQ = 27000000;
    parameter int BUS_NIPS = 1;
    parameter int BUS_MEM = 0;
 
@@ -89,13 +90,55 @@ module top(
    assign ins = bus_rd_data[BUS_MEM];
    int  next_ins_addr;
 
+   /*
+    * clock
+    */
    logic [63:0] counter = 0;
    always @(posedge sysclk)
      counter <= counter + 1;
-
    wire clk;
-   //assign clk = S1;
-   assign clk = counter[24];
+   reg clk_autorun = 1;
+   localparam CLK_S_WAIT_MAKE = 1;
+   localparam CLK_S_WAIT_BREAK = 2;
+   localparam CLK_LONGPRESS = SYSCLK_FREQ/65536*2;  // 2 sec
+   localparam CLK_DEBOUNCE = SYSCLK_FREQ/65536/10;  // 0.1 sec
+   reg [2:0] clk_state = CLK_S_WAIT_MAKE;
+   reg [15:0] clk_debounce = CLK_DEBOUNCE;  // This immediately disables autorun if S1 is true
+                                            // at power on.
+   always @(posedge counter[16]) begin
+      case (clk_state)
+      CLK_S_WAIT_MAKE: begin
+         if (S1) begin
+            if (clk_debounce == 0) begin
+               clk_autorun <= ~clk_autorun;
+               clk_debounce <= CLK_DEBOUNCE;
+               clk_state <= CLK_S_WAIT_BREAK;
+            end else begin
+               clk_debounce <= clk_debounce - 1'b1;
+            end
+         end else begin
+            clk_debounce <= CLK_LONGPRESS;
+         end
+      end
+      CLK_S_WAIT_BREAK: begin
+         if (~S1) begin
+            if (clk_debounce == 0) begin
+               clk_debounce <= CLK_LONGPRESS;
+               clk_state <= CLK_S_WAIT_MAKE;
+            end else begin
+               clk_debounce <= clk_debounce - 1'b1;
+            end
+         end else begin
+            clk_debounce <= CLK_DEBOUNCE;
+         end
+      end
+      endcase // case (clk_state)
+   end
+   assign clk = clk_autorun ? counter[24] : S1;
+
+   /*
+    * reset
+    */
    reg [1:0] reset_pon = 2'b10;
    wire reset;
    assign reset = (S2 || reset_pon) ? 1'b1 : 1'b0;
@@ -105,6 +148,9 @@ module top(
       end
    end
 
+   /*
+    * debug LED
+    */
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
    assign frame[0] = bus_addr[15:8];
@@ -113,7 +159,8 @@ module top(
    assign frame[3] = ins[7:0];
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
-   assign frame[6] = { state[3:0], bus_cmd[1:0], bus_run[BUS_MEM], bus_done[BUS_MEM] };
+   assign frame[6] = { clk, clk_autorun, state[1:0], bus_cmd[1:0], bus_run[BUS_MEM],
+                       bus_done[BUS_MEM] };
    assign frame[7] = regs[reg_flag][7:0];
 
    memory mem(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
