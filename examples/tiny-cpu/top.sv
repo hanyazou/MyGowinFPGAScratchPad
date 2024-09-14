@@ -42,6 +42,32 @@ function [15:0] I_LD_MB(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_11, ra, rb };
 endfunction
 
+//
+//  I/O read/write (word)
+//
+//  3 0001_00aa_abbb  output reg[A] to I/O address reg[B]
+function [15:0] I_OUTW(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0001_00, ra, rb };
+endfunction
+
+//  3 0001_01aa_abbb  input reg[A] from I/O address reg[B]
+function [15:0] I_INW(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0001_01, ra, rb };
+endfunction
+
+//
+//  I/O read/write (byte)
+//
+//  3 0001_10aa_abbb  output reg[A][7:0] to I/O address reg[B]
+function [15:0] I_OUTB(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0001_10, ra, rb };
+endfunction
+
+//  3 0001_11aa_abbb  input reg[A][7:0] from I/O address reg[B]
+function [15:0] I_INB(input [2:0] ra, input [2:0] rb);
+   return { 4'h3, 6'b0001_11, ra, rb };
+endfunction
+
 //  3 01ff_ffaa_abbb  move reg[ra] to reg[rb] if flag[F]
 function [15:0] I_MVNF(input [2:0] ra, input [2:0] rb, input [3:0] flag);
    return { 4'h3, 2'b01, flag, ra, rb };
