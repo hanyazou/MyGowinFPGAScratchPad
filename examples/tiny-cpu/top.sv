@@ -30,22 +30,28 @@ function [15:0] I_SUB(input [2:0] dst, input [2:0] ra, input [2:0] rb);
    return { 4'h2, 3'b001, dst, ra, rb };
 endfunction
 
-//  3 0000_00aa_abbb  store reg[ra] to mem[reg[rb]]
+//
+//  memory read/write (word)
+//
+//  3 0000_00aa_abbb  store reg[A] to memory address reg[B]
 function [15:0] I_ST(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_00, ra, rb };
 endfunction
 
-//  3 0000_01aa_abbb  load reg[ra] from mem[reg[rb]]
+//  3 0000_01aa_abbb  load reg[A] from memory address reg[B]
 function [15:0] I_LD_M(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_01, ra, rb };
 endfunction
 
-//  3 0000_10aa_abbb  store reg[ra] to mem[reg[rb]]
+//
+//  memory read/write (byte)
+//
+//  3 0000_10aa_abbb  store reg[A][7:0] to memory address reg[B]
 function [15:0] I_STB(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_10, ra, rb };
 endfunction
 
-// 3 0001_11aa_abbb  load reg[A][7:0] from mem[reg[B]]
+//  3 0000_11aa_abbb  load reg[A][7:0] from memory address reg[B]
 function [15:0] I_LD_MB(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0000_11, ra, rb };
 endfunction
@@ -76,6 +82,9 @@ function [15:0] I_INB(input [2:0] ra, input [2:0] rb);
    return { 4'h3, 6'b0001_11, ra, rb };
 endfunction
 
+//
+//  move / conditional move
+//
 //  3 01ff_ffaa_abbb  move reg[ra] to reg[rb] if flag[F]
 function [15:0] I_MVNF(input [2:0] ra, input [2:0] rb, input [3:0] flag);
    return { 4'h3, 2'b01, flag, ra, rb };
