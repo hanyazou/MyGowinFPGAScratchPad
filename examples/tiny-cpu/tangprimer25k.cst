@@ -1,3 +1,7 @@
+
+IO_LOC  "uart_txp" C3;  // IOB56B_FPGA_UART_TX
+IO_PORT "uart_txp" PULL_MODE=UP DRIVE=2 BANK_VCCIO=3.3;
+
 // PMOD connectors
 /*
 IO_LOC  "pmod_j4_0" G11;  // PMOD J4 0
