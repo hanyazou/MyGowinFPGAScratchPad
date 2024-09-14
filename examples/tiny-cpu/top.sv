@@ -124,6 +124,7 @@ module top(
 
    reg [15:0] bus_addr;
    reg [1:0] bus_cmd;
+   reg bus_num;
    reg bus_run[BUS_NIPS];
    reg [15:0] bus_wr_data;
    reg [15:0] bus_rd_data[BUS_NIPS];
@@ -218,10 +219,11 @@ module top(
       state <= 0;
    endtask // start_instruction_fetch
 
-   task bus_run_cmd(input int ip, input int cmd, input [15:0] addr);
+   task bus_run_cmd(input int bus, input int cmd, input [15:0] addr);
       bus_cmd <= cmd;
       bus_addr <= addr;
-      bus_run[ip] <= ~bus_run[ip];
+      bus_num <= bus;
+      bus_run[bus] <= ~bus_run[bus];
    endtask
 
    task register_(input int regnum, input [15:0] value);
@@ -340,9 +342,9 @@ module top(
       end
       1: begin  // memory access completion
          if (bus_cmd == bus_cmd_read)
-            regs[bus_rd_reg] <= bus_rd_data[BUS_MEM];
+            regs[bus_rd_reg] <= bus_rd_data[bus_num];
          if (bus_cmd == bus_cmd_read_b)
-            regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_rd_data[BUS_MEM][7:0] };
+            regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_rd_data[bus_num][7:0] };
          if (bus_rd_reg == reg_pc)
             start_instruction_fetch(bus_rd_data[BUS_MEM]);
          else
