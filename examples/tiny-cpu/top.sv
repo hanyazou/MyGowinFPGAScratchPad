@@ -17,7 +17,15 @@ function [15:0] I_LD_IH(input [2:0] r, input [7:0] i);
    return { 4'h1, 1'b1, r, i};
 endfunction
 
-//  2 001d_ddaa_abbb  reg[dst] = reg[ra] - reg[rb]
+//
+//  three register operations
+//
+//  2 000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
+function [15:0] I_ADD(input [2:0] dst, input [2:0] ra, input [2:0] rb);
+   return { 4'h2, 3'b000, dst, ra, rb };
+endfunction
+
+//  2 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
 function [15:0] I_SUB(input [2:0] dst, input [2:0] ra, input [2:0] rb);
    return { 4'h2, 3'b001, dst, ra, rb };
 endfunction
