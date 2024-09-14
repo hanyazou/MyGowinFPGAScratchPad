@@ -63,12 +63,14 @@ const int bus_cmd_write_b = 2'b11;
 module top(
    input logic sysclk, S1, S2,
    output logic spi_clk, dout, cs, stop,
-   output logic [10:1] pin
+   output logic [10:1] pin,
+   output wire uart_txp
    );
 
    parameter SYSCLK_FREQ = 27000000;
-   parameter int BUS_NIPS = 1;
-   parameter int BUS_MEM = 0;
+   localparam int BUS_NIPS = 2;
+   localparam int BUS_MEM = 0;
+   localparam int BUS_IO = 1;
 
    wire [15:0] pc;
    wire [15:0] flag;
@@ -85,7 +87,7 @@ module top(
    wire bus_done[BUS_NIPS];
    reg [2:0] bus_rd_reg;
    wire bus_busy;
-   assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]);
+   assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]) || (bus_run[BUS_IO] != bus_done[BUS_IO]);
 
    assign ins = bus_rd_data[BUS_MEM];
    int  next_ins_addr;
@@ -165,6 +167,8 @@ module top(
 
    memory mem(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
               bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
+   io io_i(clk, reset, bus_addr, bus_cmd, bus_run[BUS_IO], bus_wr_data,
+              bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
 
    task start_instruction_fetch(input [15:0] addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read, addr);
@@ -183,6 +187,10 @@ module top(
       regs[regnum] <= value;
    endtask
    `define register(regnum, value) register_(regnum, value)
+
+   function bus(input bus_sel);
+      return bus_sel ? BUS_IO : BUS_MEM;
+   endfunction
 
    always @(negedge clk) begin
       automatic int tmp;
@@ -236,30 +244,30 @@ module top(
             endcase
          'h3zzz:
             //
-            // memory read/write (word)
+            // bus read/write (word)
             //
             casez (ins[11:6])
-            'b0000_00: begin  // 3 0000_00aa_abbb  store reg[A] to mem[reg[B]]
+            'b000z_00: begin  // 3 0000_00aa_abbb  write reg[A] to address reg[B]
                bus_wr_data <= regs[ins[5:3]];
-               bus_run_cmd(BUS_MEM, bus_cmd_write, regs[ins[2:0]]);
+               bus_run_cmd(bus(ins[8]), bus_cmd_write, regs[ins[2:0]]);
                do_memory_access = 1;
                end
-            'b0000_01: begin  // 3 0000_01aa_abbb  load reg[A] from mem[reg[B]]
+            'b000z_01: begin  // 3 0000_01aa_abbb  read reg[A] from address reg[B]
                bus_rd_reg <= ins[5:3];
-               bus_run_cmd(BUS_MEM, bus_cmd_read, regs[ins[2:0]]);
+               bus_run_cmd(bus(ins[8]), bus_cmd_read, regs[ins[2:0]]);
                do_memory_access = 1;
             end
             //
-            // memory read/write (byte)
+            // bus read/write (byte)
             //
-            'b0000_10: begin  // 3 0001_00aa_abbb  store reg[A][7:0] to mem[reg[B]]
+            'b000z_10: begin  // 3 0001_00aa_abbb  write reg[A][7:0] to address reg[B]
                bus_wr_data <= regs[ins[5:3]];
-               bus_run_cmd(BUS_MEM, bus_cmd_write_b, regs[ins[2:0]]);
+               bus_run_cmd(bus(ins[8]), bus_cmd_write_b, regs[ins[2:0]]);
                do_memory_access = 1;
                end
-            'b0000_11: begin  // 3 0001_01aa_abbb  load reg[A][7:0] from mem[reg[B]]
+            'b000z_11: begin  // 3 0001_01aa_abbb  read reg[A][7:0] from address reg[B]
                bus_rd_reg <= ins[5:3];
-               bus_run_cmd(BUS_MEM, bus_cmd_read_b, regs[ins[2:0]]);
+               bus_run_cmd(bus(ins[8]), bus_cmd_read_b, regs[ins[2:0]]);
                do_memory_access = 1;
                end
             //
@@ -377,5 +385,80 @@ module memory(
          endcase
       end // else: !if(reset)
    end // always @ (posedge clk)
+
+endmodule
+
+
+module io(
+   input wire clk,
+   input wire reset,
+   input wire [15:0] addr,
+   input wire [1:0] cmd,
+   input wire run,
+   input wire [15:0] wr_data,
+   ref [15:0] rd_data,
+   output logic done,
+   input wire sysclk,
+   output wire uart_txp
+   );
+
+   reg prev_clk;
+   reg uart_en = 0;
+   reg [7:0] uart_tx = 0;
+   wire uart_busy;
+   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
+       tx(sysclk, uart_tx, uart_en, uart_busy, uart_txp);
+   
+   localparam S_IDLE = 'h0;
+   localparam S_WAIT_UART = 'h1;
+   reg [1:0] state = S_IDLE;
+
+   initial begin
+      done <= 0;
+   end
+
+   always @(posedge sysclk) begin
+      prev_clk <= clk;
+      if (reset) begin
+         state <= 0;
+         done <= 0;
+         uart_en <= 0;
+      end else begin
+         if (~uart_busy) begin
+            uart_en <= 0;
+         end
+
+         // posedge clk
+         if (~prev_clk && clk)  begin
+            case (state)
+            S_IDLE: begin
+               if (run != done) begin
+                  case (addr)
+                  'h0000: begin
+                     if (cmd == bus_cmd_write_b) begin
+                        if (!uart_busy) begin
+                           uart_tx <= wr_data[7:0];
+                              uart_en <= 1;
+                           done <= ~done;
+                        end else begin
+                          state <= S_WAIT_UART;
+                        end
+                     end
+                  end
+                  endcase
+               end
+            end
+            S_WAIT_UART: begin
+               if (!uart_en && !uart_busy) begin
+                  uart_tx <= wr_data[7:0];
+                  uart_en <= 1;
+                  done <= ~done;
+                  state <= S_IDLE;
+               end
+            end
+            endcase
+         end
+      end // else: !if(reset)
+   end // always @ (posedge sysclk)
 
 endmodule
