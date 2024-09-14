@@ -96,8 +96,14 @@ module top(
    wire clk;
    //assign clk = S1;
    assign clk = counter[24];
-   wire reset_sw;
-   assign reset_sw = S2;
+   reg [1:0] reset_pon = 2'b10;
+   wire reset;
+   assign reset = (S2 || reset_pon) ? 1'b1 : 1'b0;
+   always @(negedge clk) begin
+      if (reset_pon) begin
+         reset_pon <= reset_pon - 1'b1;
+      end
+   end
 
    parameter NUM_CASCADES = 2;
    wire [7:0] frame[4 * NUM_CASCADES];
@@ -110,24 +116,8 @@ module top(
    assign frame[6] = { state[3:0], bus_cmd[1:0], bus_run[BUS_MEM], bus_done[BUS_MEM] };
    assign frame[7] = regs[reg_flag][7:0];
 
-   memory mem(clk, reset_sw, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
+   memory mem(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
               bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
-
-   task reset();
-      regs[0] <= 'hffff;
-      regs[1] <= 'hffff;
-      regs[2] <= 'hffff;
-      regs[3] <= 'hffff;
-      regs[4] <= 'hffff;
-      regs[5] <= 'hffff;
-      regs[reg_pc] <= 'h0000;
-      regs[reg_flag] <= 'h0000;
-      halt <= 0;
-      bus_addr <= 'h0000;
-      bus_cmd <= bus_cmd_read;
-      bus_run[BUS_MEM] <= 1;
-      state <= 0;
-   endtask
 
    task start_instruction_fetch(input [15:0] addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read, addr);
@@ -140,10 +130,6 @@ module top(
       bus_run[ip] <= ~bus_run[ip];
    endtask
 
-   initial begin
-      reset();
-   end
-
    task register_(input int regnum, input [15:0] value);
       if ((regnum) == reg_pc)
          next_ins_addr = value;
@@ -153,8 +139,20 @@ module top(
 
    always @(negedge clk) begin
       automatic int tmp;
-      if (reset_sw) begin
-         reset();
+      if (reset) begin
+         regs[0] <= 'hffff;
+         regs[1] <= 'hffff;
+         regs[2] <= 'hffff;
+         regs[3] <= 'hffff;
+         regs[4] <= 'hffff;
+         regs[5] <= 'hffff;
+         regs[reg_pc] <= 'h0000;
+         regs[reg_flag] <= 'h0000;
+         halt <= 0;
+         bus_addr <= 'h0000;
+         bus_cmd <= bus_cmd_read;
+         bus_run[BUS_MEM] <= 1;
+         state <= 0;
       end else
       if (halt) begin
          // halted with no execution
@@ -253,7 +251,7 @@ module top(
    end // always @ (negedge clk)
 
    max7219_display #( .NUM_CASCADES(NUM_CASCADES), .INTENSITY(1) )
-     disp(sysclk, reset_sw, frame, spi_clk, dout, cs, stop, pin);
+     disp(sysclk, reset, frame, spi_clk, dout, cs, stop, pin);
 
 endmodule
 
