@@ -138,7 +138,7 @@ module top(
 
    reg halt;
    reg_t regs[reg_numregs];
-   reg [3:0] state;
+   enum { S_FETCH_EXEC, S_BUS_RW } state;
    bus_addr_t bus_addr;
    bus_cmd_t bus_cmd;
    bus_num_t bus_num;
@@ -165,11 +165,9 @@ module top(
      counter <= counter + 1;
    wire clk;
    reg clk_autorun = 1;
-   localparam CLK_S_WAIT_MAKE = 1;
-   localparam CLK_S_WAIT_BREAK = 2;
+   enum { CLK_S_WAIT_MAKE, CLK_S_WAIT_BREAK } clk_state = CLK_S_WAIT_MAKE;
    localparam CLK_LONGPRESS = SYSCLK_FREQ/65536*2;  // 2 sec
    localparam CLK_DEBOUNCE = SYSCLK_FREQ/65536/10;  // 0.1 sec
-   reg [2:0] clk_state = CLK_S_WAIT_MAKE;
    reg [15:0] clk_debounce = CLK_DEBOUNCE;  // This immediately disables autorun if S1 is true
                                             // at power on.
    always @(posedge counter[16]) begin
@@ -237,7 +235,7 @@ module top(
 
    task start_instruction_fetch(bus_addr_t addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
-      state <= 0;
+      state <= S_FETCH_EXEC;
    endtask // start_instruction_fetch
 
    task bus_run_cmd(bus_num_t bus, bus_cmd_t cmd, bus_addr_t addr);
@@ -265,7 +263,7 @@ module top(
          regs[reg_flag] <= 'h0000;
          halt <= 0;
          bus_run[BUS_IO] <= 0;
-         state <= 0;
+         state <= S_FETCH_EXEC;
 
          // fetch first instruction
          bus_addr <= 'h0000;
@@ -279,7 +277,7 @@ module top(
          // wait for memory access completion
       end else
       case (state)
-      0: begin  // fetch and execution
+      S_FETCH_EXEC: begin  // fetch and execution
          automatic int do_memory_access = 0;
          next_ins_addr = regs[reg_pc] + 2;
          casez (ins)
@@ -343,11 +341,11 @@ module top(
          endcase // casez (ins)
          regs[reg_pc] <= next_ins_addr[15:0];
          if (do_memory_access)
-            state <= 1;
+            state <= S_BUS_RW;
          else
             start_instruction_fetch(next_ins_addr);
       end
-      1: begin  // memory access completion
+      S_BUS_RW: begin  // memory access completion
          if (bus_cmd == bus_cmd_read_w)
             regs[bus_rd_reg] <= bus_rd_data[bus_num];
          if (bus_cmd == bus_cmd_read_b)
