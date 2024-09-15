@@ -1,8 +1,19 @@
+typedef logic [15:0] reg_t;
+typedef logic [15:0] ins_t;
+typedef bit [4:0] reg_num_t;
+typedef bit [3:0] flag_num_t;
+typedef logic [15:0] bus_data_t;
+typedef logic [15:0] bus_addr_t;
+typedef logic [2:0] bus_cmd_t;
+typedef bit [0:0] bus_num_t;
+localparam bus_numbuses = 2;
+
 localparam reg_flag = 16;
 localparam reg_flag_zero = 0;
 localparam reg_pc = 17;
 localparam reg_sp = 18;
 localparam reg_bp = 19;
+localparam reg_numregs = 20;
 
 localparam bus_cmd_write =   3'b000;
 localparam bus_cmd_read =    3'b001;
@@ -125,26 +136,26 @@ module top(
 
    parameter SYSCLK_FREQ = 27000000;
 
-   wire [15:0] pc;
-   wire [15:0] flag;
-   wire [15:0] ins;
    reg halt;
-   reg [15:0] regs[32];
+   reg_t regs[reg_numregs];
    reg [3:0] state;
+   bus_addr_t bus_addr;
+   bus_cmd_t bus_cmd;
+   bus_num_t bus_num;
+   reg bus_run[bus_numbuses];
+   bus_data_t bus_wr_data;
+   bus_data_t bus_rd_data[bus_numbuses];
+   reg_num_t bus_rd_reg;
 
-   reg [15:0] bus_addr;
-   reg [2:0] bus_cmd;
-   reg bus_num;
-   reg bus_run[2];
-   reg [15:0] bus_wr_data;
-   reg [15:0] bus_rd_data[2];
-   wire bus_done[2];
-   reg [3:0] bus_rd_reg;
+   wire reg_t pc;
+   wire reg_t flag;
+   wire bus_done[bus_numbuses];
+   wire ins_t ins;
    wire bus_busy;
-   assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]) || (bus_run[BUS_IO] != bus_done[BUS_IO]);
-
-   assign ins = bus_rd_data[BUS_MEM];
-   int  next_ins_addr;
+   assign bus_busy = ((bus_run[BUS_MEM] != bus_done[BUS_MEM]) ||
+                      (bus_run[BUS_IO] != bus_done[BUS_IO]));
+   assign ins = ins_t'(bus_rd_data[BUS_MEM]);
+   int next_ins_addr;
 
    /*
     * clock
@@ -224,19 +235,19 @@ module top(
    io io_i(clk, reset, bus_addr, bus_cmd, bus_run[BUS_IO], bus_wr_data,
               bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
 
-   task start_instruction_fetch(input [15:0] addr);
+   task start_instruction_fetch(bus_addr_t addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
       state <= 0;
    endtask // start_instruction_fetch
 
-   task bus_run_cmd(input [0:0] bus, input [2:0] cmd, input [15:0] addr);
+   task bus_run_cmd(bus_num_t bus, bus_cmd_t cmd, bus_addr_t addr);
       bus_cmd <= cmd;
       bus_addr <= addr;
       bus_num <= bus;
       bus_run[bus] <= ~bus_run[bus];
    endtask
 
-   task register_(input [4:0] regnum, input [15:0] value);
+   task register_(reg_num_t regnum, reg_t value);
       if ((regnum) == reg_pc)
          next_ins_addr = value;
       regs[regnum] <= value;
@@ -358,11 +369,11 @@ endmodule
 module memory(
    input wire clk,
    input wire reset,
-   input wire [15:0] addr,
-   input wire [2:0] cmd,
+   input wire bus_addr_t addr,
+   input wire bus_cmd_t cmd,
    input wire run,
-   input wire [15:0] wr_data,
-   ref [15:0] rd_data,
+   input wire bus_data_t wr_data,
+   ref bus_data_t rd_data,
    output logic done
    );
 
@@ -455,11 +466,11 @@ endmodule
 module io(
    input wire clk,
    input wire reset,
-   input wire [15:0] addr,
-   input wire [2:0] cmd,
+   input wire bus_addr_t addr,
+   input wire bus_cmd_t cmd,
    input wire run,
-   input wire [15:0] wr_data,
-   ref [15:0] rd_data,
+   input wire bus_data_t wr_data,
+   ref bus_data_t rd_data,
    output logic done,
    input wire sysclk,
    output wire uart_txp
