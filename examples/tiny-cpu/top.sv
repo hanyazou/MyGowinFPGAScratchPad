@@ -36,80 +36,80 @@ function [15:0] I_HALT;
 endfunction
 
 //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
-function [15:0] I_JPN_(input [1:0] f, input [3:0] r);
-   return { 4'h0, 6'b0100_00, f, r };
+function [15:0] I_JPN_(flag_num_t f, reg_num_t r);
+   return { 4'h0, 6'b0100_00, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JPNZ(input [3:0] r);
+function [15:0] I_JPNZ(reg_num_t r);
    return I_JPN_(reg_flag_zero, r);
 endfunction
 
 //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-function [15:0] I_LD_IL(input [3:0] r, input [7:0] i);
-   return { 4'h1, r, i};
+function [15:0] I_LD_IL(reg_num_t r, int i);
+   return { 4'h1, r[3:0], i[7:0]};
 endfunction
 
 //  2 dddd_nnnn_nnnn  reg[D][15:8] = 8'hzz
-function [15:0] I_LD_IH(input [3:0] r, input [7:0] i);
-   return { 4'h2, r, i};
+function [15:0] I_LD_IH(reg_num_t r, int i);
+   return { 4'h2, r[3:0], i[7:0]};
 endfunction
 
 //
 //  memory load/store
 //
 //  3 ttt0_aaaa_abbb R/W reg[A] from/to memory address reg[B]
-function [15:0] I_ST   (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write,   BUS_MEM, ra, rb };
+function [15:0] I_ST   (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write,   BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_M (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read,    BUS_MEM, ra, rb };
+function [15:0] I_LD_M (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read,    BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_STW  (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write_w, BUS_MEM, ra, rb };
+function [15:0] I_STW  (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write_w, BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_MW(input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read_w,  BUS_MEM, ra, rb };
+function [15:0] I_LD_MW(reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read_w,  BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_STB  (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write_b, BUS_MEM, ra, rb };
+function [15:0] I_STB  (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write_b, BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_MB(input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read_b,  BUS_MEM, ra, rb };
+function [15:0] I_LD_MB(reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read_b,  BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
 
 //
 //  I/O read/write
 //
 //  3 ttt1_aaaa_abbb R/W reg[A] from/to I/O address reg[B]
-function [15:0] I_OUT (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write,   BUS_IO, ra, rb };
+function [15:0] I_OUT (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write,   BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_IN  (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read,    BUS_IO, ra, rb };
+function [15:0] I_IN  (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read,    BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_OUTW(input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write_w, BUS_IO, ra, rb };
+function [15:0] I_OUTW(reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write_w, BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_INW (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read_w,  BUS_IO, ra, rb };
+function [15:0] I_INW (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read_w,  BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_OUTB(input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_write_b, BUS_IO, ra, rb };
+function [15:0] I_OUTB(reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_write_b, BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_INB (input [3:0] ra, input [3:0] rb);
-   return { 4'h3, bus_cmd_read_b,  BUS_IO, ra, rb };
+function [15:0] I_INB (reg_num_t ra, reg_num_t rb);
+   return { 4'h3, bus_cmd_read_b,  BUS_IO, ra[3:0], rb[3:0] };
 endfunction
 
 //
 //  move
 //
-function [15:0] I_MOV(input [4:0] ra, input [4:0] rb);
+function [15:0] I_MOV(reg_num_t ra, reg_num_t rb);
    if (ra[4] && ~rb[4])
      //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
-     return { 4'h3, 3'b110, ra, rb };
+     return { 4'h3, 3'b110, ra[4:0], rb[3:0] };
    else
    if (~ra[4] && rb[4])
      //  3 111a_aaaa_bbbb  move reg[B] to reg[A]
-     return { 4'h3, 3'b111, rb, ra };
+     return { 4'h3, 3'b111, rb[4:0], ra[3:0] };
    else
      return { 4'h0, 4'h0, 8'hff };  // invalid instruction
 endfunction
@@ -118,13 +118,13 @@ endfunction
 //  three register operations
 //
 //  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
-function [15:0] I_ADD(input [3:0] dst, input [3:0] ra, input [3:0] rb);
-   return { 4'h8, dst, ra, rb };
+function [15:0] I_ADD(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'h8, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
 
 //  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-function [15:0] I_SUB(input [3:0] dst, input [3:0] ra, input [3:0] rb);
-   return { 4'h9, dst, ra, rb };
+function [15:0] I_SUB(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'h9, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
 
 module top(
