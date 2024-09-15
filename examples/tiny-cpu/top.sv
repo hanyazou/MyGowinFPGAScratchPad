@@ -1,107 +1,120 @@
-const int reg_pc = 6;
-const int reg_flag = 7;
-const int reg_flag_zero = 0;
+localparam reg_flag = 16;
+localparam reg_flag_zero = 0;
+localparam reg_pc = 17;
+localparam reg_sp = 18;
+localparam reg_bp = 19;
 
-//  0 zzzz_zzzz_zzzz  nop
+localparam bus_cmd_write =   3'b000;
+localparam bus_cmd_read =    3'b001;
+localparam bus_cmd_write_w = 3'b010;
+localparam bus_cmd_read_w =  3'b011;
+localparam bus_cmd_write_b = 3'b100;
+localparam bus_cmd_read_b =  3'b101;
+
+localparam BUS_MEM = 1'b0;
+localparam BUS_IO = 1'b1;
+
+//  0 0000_0000_0000  NOP
 function [15:0] I_NOP;
-   return { 4'h0, 12'bzzzz_zzzz_zzzz };
+   return { 4'h0, 12'b0000_0000_0000 };
 endfunction
 
-//  1 0ddd_nnnn_nnnn  reg[0][7:0] = 8'hzz
-function [15:0] I_LD_IL(input [2:0] r, input [7:0] i);
-   return { 4'h1, 1'b0, r, i};
+//  0 0000_0000_0001  HALT
+function [15:0] I_HALT;
+   return { 4'h0, 12'b0000_0000_0001 };
 endfunction
 
-//  1 1ddd_nnnn_nnnn  reg[0][15:8] = 8'hzz
-function [15:0] I_LD_IH(input [2:0] r, input [7:0] i);
-   return { 4'h1, 1'b1, r, i};
+//  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
+function [15:0] I_JPN_(input [1:0] f, input [3:0] r);
+   return { 4'h0, 6'b0100_00, f, r };
+endfunction
+function [15:0] I_JPNZ(input [3:0] r);
+   return I_JPN_(reg_flag_zero, r);
+endfunction
+
+//  1 dddd_nnnn_nnnn  reg[D][7:0] = n
+function [15:0] I_LD_IL(input [3:0] r, input [7:0] i);
+   return { 4'h1, r, i};
+endfunction
+
+//  2 dddd_nnnn_nnnn  reg[D][15:8] = 8'hzz
+function [15:0] I_LD_IH(input [3:0] r, input [7:0] i);
+   return { 4'h2, r, i};
+endfunction
+
+//
+//  memory load/store
+//
+//  3 ttt0_aaaa_abbb R/W reg[A] from/to memory address reg[B]
+function [15:0] I_ST   (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write,   BUS_MEM, ra, rb };
+endfunction
+function [15:0] I_LD_M (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read,    BUS_MEM, ra, rb };
+endfunction
+function [15:0] I_STW  (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write_w, BUS_MEM, ra, rb };
+endfunction
+function [15:0] I_LD_MW(input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read_w,  BUS_MEM, ra, rb };
+endfunction
+function [15:0] I_STB  (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write_b, BUS_MEM, ra, rb };
+endfunction
+function [15:0] I_LD_MB(input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read_b,  BUS_MEM, ra, rb };
+endfunction
+
+//
+//  I/O read/write
+//
+//  3 ttt1_aaaa_abbb R/W reg[A] from/to I/O address reg[B]
+function [15:0] I_OUT (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write,   BUS_IO, ra, rb };
+endfunction
+function [15:0] I_IN  (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read,    BUS_IO, ra, rb };
+endfunction
+function [15:0] I_OUTW(input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write_w, BUS_IO, ra, rb };
+endfunction
+function [15:0] I_INW (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read_w,  BUS_IO, ra, rb };
+endfunction
+function [15:0] I_OUTB(input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_write_b, BUS_IO, ra, rb };
+endfunction
+function [15:0] I_INB (input [3:0] ra, input [3:0] rb);
+   return { 4'h3, bus_cmd_read_b,  BUS_IO, ra, rb };
+endfunction
+
+//
+//  move
+//
+function [15:0] I_MOV(input [4:0] ra, input [4:0] rb);
+   if (ra[4] && ~rb[4])
+     //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
+     return { 4'h3, 3'b110, ra, rb };
+   else
+   if (~ra[4] && rb[4])
+     //  3 111a_aaaa_bbbb  move reg[B] to reg[A]
+     return { 4'h3, 3'b111, rb, ra };
+   else
+     return { 4'h0, 4'h0, 8'hff };  // invalid instruction
 endfunction
 
 //
 //  three register operations
 //
-//  2 000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
-function [15:0] I_ADD(input [2:0] dst, input [2:0] ra, input [2:0] rb);
-   return { 4'h2, 3'b000, dst, ra, rb };
+//  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
+function [15:0] I_ADD(input [3:0] dst, input [3:0] ra, input [3:0] rb);
+   return { 4'h8, dst, ra, rb };
 endfunction
 
-//  2 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-function [15:0] I_SUB(input [2:0] dst, input [2:0] ra, input [2:0] rb);
-   return { 4'h2, 3'b001, dst, ra, rb };
+//  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
+function [15:0] I_SUB(input [3:0] dst, input [3:0] ra, input [3:0] rb);
+   return { 4'h9, dst, ra, rb };
 endfunction
-
-//
-//  memory read/write (word)
-//
-//  3 0000_00aa_abbb  store reg[A] to memory address reg[B]
-function [15:0] I_ST(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0000_00, ra, rb };
-endfunction
-
-//  3 0000_01aa_abbb  load reg[A] from memory address reg[B]
-function [15:0] I_LD_M(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0000_01, ra, rb };
-endfunction
-
-//
-//  memory read/write (byte)
-//
-//  3 0000_10aa_abbb  store reg[A][7:0] to memory address reg[B]
-function [15:0] I_STB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0000_10, ra, rb };
-endfunction
-
-//  3 0000_11aa_abbb  load reg[A][7:0] from memory address reg[B]
-function [15:0] I_LD_MB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0000_11, ra, rb };
-endfunction
-
-//
-//  I/O read/write (word)
-//
-//  3 0001_00aa_abbb  output reg[A] to I/O address reg[B]
-function [15:0] I_OUTW(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_00, ra, rb };
-endfunction
-
-//  3 0001_01aa_abbb  input reg[A] from I/O address reg[B]
-function [15:0] I_INW(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_01, ra, rb };
-endfunction
-
-//
-//  I/O read/write (byte)
-//
-//  3 0001_10aa_abbb  output reg[A][7:0] to I/O address reg[B]
-function [15:0] I_OUTB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_10, ra, rb };
-endfunction
-
-//  3 0001_11aa_abbb  input reg[A][7:0] from I/O address reg[B]
-function [15:0] I_INB(input [2:0] ra, input [2:0] rb);
-   return { 4'h3, 6'b0001_11, ra, rb };
-endfunction
-
-//
-//  move / conditional move
-//
-//  3 01ff_ffaa_abbb  move reg[ra] to reg[rb] if flag[F]
-function [15:0] I_MVNF(input [2:0] ra, input [2:0] rb, input [3:0] flag);
-   return { 4'h3, 2'b01, flag, ra, rb };
-endfunction
-function [15:0] I_JPNZ(input [2:0] r);
-   return I_MVNF(reg_pc, r, reg_flag_zero);
-endfunction
-
-//  f 0000_0000_0000  halt
-function [15:0] I_HALT;
-   return { 4'hf, 12'b0000_0000_0000 };
-endfunction
-
-const int bus_cmd_read = 2'b00;
-const int bus_cmd_write = 2'b01;
-const int bus_cmd_read_b = 2'b10;
-const int bus_cmd_write_b = 2'b11;
 
 module top(
    input logic sysclk, S1, S2,
@@ -111,25 +124,22 @@ module top(
    );
 
    parameter SYSCLK_FREQ = 27000000;
-   localparam int BUS_NIPS = 2;
-   localparam int BUS_MEM = 0;
-   localparam int BUS_IO = 1;
 
    wire [15:0] pc;
    wire [15:0] flag;
    wire [15:0] ins;
    reg halt;
-   reg [15:0] regs[8];
+   reg [15:0] regs[32];
    reg [3:0] state;
 
    reg [15:0] bus_addr;
-   reg [1:0] bus_cmd;
+   reg [2:0] bus_cmd;
    reg bus_num;
-   reg bus_run[BUS_NIPS];
+   reg bus_run[2];
    reg [15:0] bus_wr_data;
-   reg [15:0] bus_rd_data[BUS_NIPS];
-   wire bus_done[BUS_NIPS];
-   reg [2:0] bus_rd_reg;
+   reg [15:0] bus_rd_data[2];
+   wire bus_done[2];
+   reg [3:0] bus_rd_reg;
    wire bus_busy;
    assign bus_busy = (bus_run[BUS_MEM] != bus_done[BUS_MEM]) || (bus_run[BUS_IO] != bus_done[BUS_IO]);
 
@@ -180,7 +190,7 @@ module top(
       end
       endcase // case (clk_state)
    end
-   assign clk = clk_autorun ? counter[24] : S1;
+   assign clk = clk_autorun ? counter[21] : S1;
 
    /*
     * reset
@@ -205,8 +215,8 @@ module top(
    assign frame[3] = ins[7:0];
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
-   assign frame[6] = { clk, clk_autorun, state[1:0], bus_cmd[1:0], bus_run[BUS_MEM],
-                       bus_done[BUS_MEM] };
+   assign frame[6] = { clk, clk_autorun, bus_run[BUS_MEM], bus_done[BUS_MEM], state[0:0],
+                       bus_cmd[2:0] };
    assign frame[7] = regs[reg_flag][7:0];
 
    memory mem(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
@@ -215,18 +225,18 @@ module top(
               bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
 
    task start_instruction_fetch(input [15:0] addr);
-      bus_run_cmd(BUS_MEM, bus_cmd_read, addr);
+      bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
       state <= 0;
    endtask // start_instruction_fetch
 
-   task bus_run_cmd(input int bus, input int cmd, input [15:0] addr);
+   task bus_run_cmd(input [0:0] bus, input [2:0] cmd, input [15:0] addr);
       bus_cmd <= cmd;
       bus_addr <= addr;
       bus_num <= bus;
       bus_run[bus] <= ~bus_run[bus];
    endtask
 
-   task register_(input int regnum, input [15:0] value);
+   task register_(input [4:0] regnum, input [15:0] value);
       if ((regnum) == reg_pc)
          next_ins_addr = value;
       regs[regnum] <= value;
@@ -240,19 +250,16 @@ module top(
    always @(negedge clk) begin
       automatic int tmp;
       if (reset) begin
-         regs[0] <= 'hffff;
-         regs[1] <= 'hffff;
-         regs[2] <= 'hffff;
-         regs[3] <= 'hffff;
-         regs[4] <= 'hffff;
-         regs[5] <= 'hffff;
          regs[reg_pc] <= 'h0000;
          regs[reg_flag] <= 'h0000;
          halt <= 0;
-         bus_addr <= 'h0000;
-         bus_cmd <= bus_cmd_read;
-         bus_run[BUS_MEM] <= 1;
+         bus_run[BUS_IO] <= 0;
          state <= 0;
+
+         // fetch first instruction
+         bus_addr <= 'h0000;
+         bus_cmd <= bus_cmd_read_w;
+         bus_run[BUS_MEM] <= 1;
       end else
       if (halt) begin
          // halted with no execution
@@ -265,74 +272,63 @@ module top(
          automatic int do_memory_access = 0;
          next_ins_addr = regs[reg_pc] + 2;
          casez (ins)
-         'h0zzz: begin  // 0 zzzz_zzz_zzzz  no operation
-            end
-         'h1zzz:
-            case (ins[11])
-            0:  // 1 0ddd_nnnn_nnnn  load immediate lower half of reg[D]
-              `register(ins[10:8], regs[ins[10:8]] & 'hff00 | (ins & 'hff));
-            1:  // 1 1ddd_nnnn_nnnn  load immediate upper half of reg[D]
-              `register(ins[10:8], regs[ins[10:8]] & 'h00ff | (ins & 'hff) << 8);
-            endcase
-         'h2zzz:
-            case (ins[11:9])
-            0: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] + reg[B]
-               tmp = regs[ins[5:3]] + regs[ins[2:0]];
-               `register(ins[8:6], tmp);
-               regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
-            end
-            1: begin  // 2 000d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-               tmp = regs[ins[5:3]] - regs[ins[2:0]];
-               `register(ins[8:6], tmp);
-               regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
-            end
-            endcase
-         'h3zzz:
-            //
-            // bus read/write (word)
-            //
-            casez (ins[11:6])
-            'b000z_00: begin  // 3 0000_00aa_abbb  write reg[A] to address reg[B]
-               bus_wr_data <= regs[ins[5:3]];
-               bus_run_cmd(bus(ins[8]), bus_cmd_write, regs[ins[2:0]]);
-               do_memory_access = 1;
-               end
-            'b000z_01: begin  // 3 0000_01aa_abbb  read reg[A] from address reg[B]
-               bus_rd_reg <= ins[5:3];
-               bus_run_cmd(bus(ins[8]), bus_cmd_read, regs[ins[2:0]]);
-               do_memory_access = 1;
-            end
-            //
-            // bus read/write (byte)
-            //
-            'b000z_10: begin  // 3 0001_00aa_abbb  write reg[A][7:0] to address reg[B]
-               bus_wr_data <= regs[ins[5:3]];
-               bus_run_cmd(bus(ins[8]), bus_cmd_write_b, regs[ins[2:0]]);
-               do_memory_access = 1;
-               end
-            'b000z_11: begin  // 3 0001_01aa_abbb  read reg[A][7:0] from address reg[B]
-               bus_rd_reg <= ins[5:3];
-               bus_run_cmd(bus(ins[8]), bus_cmd_read_b, regs[ins[2:0]]);
-               do_memory_access = 1;
-               end
-            //
-            // move / conditional move
-            //
-            'b0010_00:  // 3 0010_10aa_abbb  move reg[B] to reg[A]
-               `register(ins[5:3], regs[ins[2:0]]);
-            'b01zzzz:  // 3 0100_00aa_abbb  move reg[B] to reg[A] if not flag[F]
-               if (!regs[reg_flag][ins[9:6]])
-                  `register(ins[5:3], regs[ins[2:0]]);
-            'b10zzzz:  // 3 10ff_ffaa_abbb  move reg[B] to reg[A] if flag[F]
-               if (regs[reg_flag][ins[9:6]])
-                  `register(ins[5:3], regs[ins[2:0]]);
-            endcase
-         'hfzzz:
-            case (ins[11:0])
-            0: begin  // f 0000_0000_0000  halt
-               halt <= 1;
-               end
-            endcase
+         16'b0000_0000_0000_0000: begin  //  0 0000_0000_0000  NOP
+            // no operation
+         end
+         16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
+            halt <= 1;
+         end
+         16'b0000_0100_00zz_zzzz: begin  //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
+            if (!regs[reg_flag][ins[5:4]])
+               `register(reg_pc, regs[ins[3:0]]);
+         end
+         16'b0000_0100_01zz_zzzz: begin  //  0 0100_01ff_rrrr JP  f, (R) (jump to R if F is true)
+            if (regs[reg_flag][ins[5:4]])
+               `register(reg_pc, regs[ins[3:0]]);
+         end
+         16'b0001_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
+            `register(ins[11:8], regs[ins[11:8]] & 'hff00 | (ins & 'hff));
+         end
+         16'b0010_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
+            `register(ins[11:8], regs[ins[11:8]] & 'h00ff | (ins & 'hff) << 8);
+         end
+
+         //
+         // bus read/write 
+         //
+         //  3 tttn_aaaa_bbbb R/W reg[A] from/to address reg[B]
+         16'b0011_zzzz_zzzz_zzzz:  begin
+            bus_wr_data <= regs[ins[7:4]];
+            bus_rd_reg <= ins[7:4];
+            bus_run_cmd(bus(ins[8]), ins[11:9], regs[ins[3:0]]);
+            do_memory_access = 1;
+         end
+
+         //
+         // move
+         //
+         16'b0011_110z_zzzz_zzzz:  begin
+            //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
+           `register(ins[3:0], regs[ins[8:4]]);
+         end
+         16'b0011_111z_zzzz_zzzz:  begin
+            //  3 111a_aaaa_bbbb  move reg[B] to reg[A]
+            `register(ins[8:4], regs[ins[3:0]]);
+         end
+
+         //
+         //  three register operations
+         //
+         'h8zzz: begin  //  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
+            tmp = regs[ins[7:4]] + regs[ins[3:0]];
+            `register(ins[11:8], tmp);
+            regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
+         end
+         'h9zzz: begin  //  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
+            tmp = regs[ins[7:4]] - regs[ins[3:0]];
+            `register(ins[11:8], tmp);
+            regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
+         end
          endcase // casez (ins)
          regs[reg_pc] <= next_ins_addr[15:0];
          if (do_memory_access)
@@ -341,7 +337,7 @@ module top(
             start_instruction_fetch(next_ins_addr);
       end
       1: begin  // memory access completion
-         if (bus_cmd == bus_cmd_read)
+         if (bus_cmd == bus_cmd_read_w)
             regs[bus_rd_reg] <= bus_rd_data[bus_num];
          if (bus_cmd == bus_cmd_read_b)
             regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_rd_data[bus_num][7:0] };
@@ -363,7 +359,7 @@ module memory(
    input wire clk,
    input wire reset,
    input wire [15:0] addr,
-   input wire [1:0] cmd,
+   input wire [2:0] cmd,
    input wire run,
    input wire [15:0] wr_data,
    ref [15:0] rd_data,
@@ -386,11 +382,11 @@ module memory(
 
       // LOOP0
       mem['h0008] = I_SUB(0, 0, 1);    // SUB r0, r0, r1
-      mem['h0009] = I_ST(0, 3);        // ST r0, (r3)
-      mem['h000a] = I_STB(0, 3);       // ST r0.l, (r3)
+      mem['h0009] = I_STW(0, 3);       // ST r0.w, (r3)
+      mem['h000a] = I_STB(0, 3);       // ST r0.b, (r3)
       mem['h000b] = I_LD_IL(0, 'hff);  // LD r0.l, FFh
-      mem['h000c] = I_LD_M(0, 3);      // LD r0, (r3)
-      mem['h000d] = I_LD_MB(0, 3);     // LD r0.l, (r3)
+      mem['h000c] = I_LD_MW(0, 3);     // LD r0.w, (r3)
+      mem['h000d] = I_LD_MB(0, 3);     // LD r0.b, (r3)
       mem['h000e] = I_JPNZ(2);         // JPNZ (r2)
       mem['h000f] = I_NOP();           // NOP
 
@@ -430,9 +426,9 @@ module memory(
          0: begin
             if (run != done) begin
                case (cmd)
-               bus_cmd_read:
+               bus_cmd_read_w:
                   rd_data <= mem[addr[15:1]];
-               bus_cmd_write:
+               bus_cmd_write_w:
                   mem[addr[15:1]] <= wr_data;
                bus_cmd_read_b:
                  if (addr[0])
@@ -460,7 +456,7 @@ module io(
    input wire clk,
    input wire reset,
    input wire [15:0] addr,
-   input wire [1:0] cmd,
+   input wire [2:0] cmd,
    input wire run,
    input wire [15:0] wr_data,
    ref [15:0] rd_data,
