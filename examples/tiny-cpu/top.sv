@@ -1,3 +1,5 @@
+`default_nettype none
+
 typedef logic [15:0] reg_t;
 typedef logic [15:0] ins_t;
 typedef bit [4:0] reg_num_t;
@@ -128,10 +130,10 @@ function [15:0] I_SUB(reg_num_t dst, reg_num_t ra, reg_num_t rb);
 endfunction
 
 module top(
-   input logic sysclk, S1, S2,
-   output logic spi_clk, dout, cs, stop,
-   output logic [10:1] pin,
-   output wire uart_txp
+   input wire logic sysclk, S1, S2,
+   output wire logic spi_clk, dout, cs, stop,
+   output wire logic [10:1] pin,
+   output reg uart_txp
    );
 
    parameter SYSCLK_FREQ = 27000000;

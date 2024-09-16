@@ -4,20 +4,20 @@ module max7219_display
      parameter INTENSITY = 7
    )
    (
-   input logic        clk, reset_sw,
-   input logic [7:0]  frame[4 * NUM_CASCADES],
-   output logic       spi_clk, dout, cs, stop,
-   output logic [9:0] debug
+   input wire logic clk, reset_sw,
+   input wire logic [7:0] frame[4 * NUM_CASCADES],
+   output reg spi_clk, dout, cs, stop,
+   output reg [9:0] debug
    );
 
-`define REG_NOP                 8'h00
-`define REG_DIGIT(n)            ((n) + 1)
-`define     REG_DIGIT_DP            8'h80
-`define REG_DECODE_MODE         8'h09
-`define REG_INTENSITY           8'h0a
-`define REG_SCAN_LIMIT          8'h0b
-`define REG_SHUTDOWN            8'h0c
-`define REG_DISPLAY_TEST        8'h0f
+   localparam REG_NOP          = 8'h00;
+   `define REG_DIGIT(n) ((n) + 1)
+   localparam   REG_DIGIT_DP   = 8'h80;
+   localparam REG_DECODE_MODE  = 8'h09;
+   localparam REG_INTENSITY    = 8'h0a;
+   localparam REG_SCAN_LIMIT   = 8'h0b;
+   localparam REG_SHUTDOWN     = 8'h0c;
+   localparam REG_DISPLAY_TEST = 8'h0f;
 
    logic [7:0] addr;
    logic [7:0] data[NUM_CASCADES];
@@ -160,11 +160,11 @@ module max7219_display
    // state machine
    always @(posedge spi_clk)
      case (state)
-       `send_command(0, `REG_DISPLAY_TEST, 0, 1)
-       `send_command(1, `REG_SHUTDOWN, 1, 2)
-       `send_command(2, `REG_SCAN_LIMIT, 7, 3)
-       `send_command(3, `REG_INTENSITY, INTENSITY, 4)
-       `send_command(4, `REG_DECODE_MODE, 'h00, 5)
+       `send_command(0, REG_DISPLAY_TEST, 0, 1)
+       `send_command(1, REG_SHUTDOWN, 1, 2)
+       `send_command(2, REG_SCAN_LIMIT, 7, 3)
+       `send_command(3, REG_INTENSITY, INTENSITY, 4)
+       `send_command(4, REG_DECODE_MODE, 'h00, 5)
        `send_data(5, 3, 0, 7)
        `send_data(7, 2, 2, 9)
        `send_data(9, 1, 4, 11)
@@ -179,8 +179,10 @@ module max7219_spi
      parameter NUM_CASCADES = 1
    )
    (
-   input logic  clk, reset_n, [7:0] addr, [7:0] data[NUM_CASCADES],
-   output logic dout, cs
+   input wire logic  clk, reset_n,
+   input wire logic [7:0] addr,
+   input wire logic [7:0] data[NUM_CASCADES],
+   output reg dout, cs
    );
 
    `define CASCADE0 ((0 < NUM_CASCADES) ? (NUM_CASCADES - 1) : 0)
