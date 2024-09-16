@@ -38,20 +38,20 @@ function [15:0] I_HALT;
 endfunction
 
 //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
-function [15:0] I_JPN_(flag_num_t f, reg_num_t r);
+function [15:0] I_JP_N_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0100_00, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JPNZ(reg_num_t r);
-   return I_JPN_(reg_flag_zero, r);
+function [15:0] I_JP_NZ(reg_num_t r);
+   return I_JP_N_(reg_flag_zero, r);
 endfunction
 
 //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-function [15:0] I_LD_IL(reg_num_t r, int i);
+function [15:0] I_LD_RL_I(reg_num_t r, int i);
    return { 4'h1, r[3:0], i[7:0]};
 endfunction
 
 //  2 dddd_nnnn_nnnn  reg[D][15:8] = 8'hzz
-function [15:0] I_LD_IH(reg_num_t r, int i);
+function [15:0] I_LD_RH_I(reg_num_t r, int i);
    return { 4'h2, r[3:0], i[7:0]};
 endfunction
 
@@ -59,22 +59,22 @@ endfunction
 //  memory load/store
 //
 //  3 ttt0_aaaa_abbb R/W reg[A] from/to memory address reg[B]
-function [15:0] I_ST   (reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_M_R (reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write,   BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_M (reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_R_M (reg_num_t ra, reg_num_t rb);
    return { 4'h3, bus_cmd_read,    BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_STW  (reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_M_RW(reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write_w, BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_MW(reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_RW_M(reg_num_t ra, reg_num_t rb);
    return { 4'h3, bus_cmd_read_w,  BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_STB  (reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_M_RB(reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write_b, BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_LD_MB(reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_RB_M(reg_num_t ra, reg_num_t rb);
    return { 4'h3, bus_cmd_read_b,  BUS_MEM, ra[3:0], rb[3:0] };
 endfunction
 
@@ -82,19 +82,19 @@ endfunction
 //  I/O read/write
 //
 //  3 ttt1_aaaa_abbb R/W reg[A] from/to I/O address reg[B]
-function [15:0] I_OUT (reg_num_t ra, reg_num_t rb);
+function [15:0] I_OUT (reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write,   BUS_IO, ra[3:0], rb[3:0] };
 endfunction
 function [15:0] I_IN  (reg_num_t ra, reg_num_t rb);
    return { 4'h3, bus_cmd_read,    BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_OUTW(reg_num_t ra, reg_num_t rb);
+function [15:0] I_OUTW(reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write_w, BUS_IO, ra[3:0], rb[3:0] };
 endfunction
 function [15:0] I_INW (reg_num_t ra, reg_num_t rb);
    return { 4'h3, bus_cmd_read_w,  BUS_IO, ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_OUTB(reg_num_t ra, reg_num_t rb);
+function [15:0] I_OUTB(reg_num_t rb, reg_num_t ra);
    return { 4'h3, bus_cmd_write_b, BUS_IO, ra[3:0], rb[3:0] };
 endfunction
 function [15:0] I_INB (reg_num_t ra, reg_num_t rb);
@@ -104,7 +104,7 @@ endfunction
 //
 //  move
 //
-function [15:0] I_MOV(reg_num_t ra, reg_num_t rb);
+function [15:0] I_LD_R_R(reg_num_t rb, reg_num_t ra);
    if (ra[4] && ~rb[4])
      //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
      return { 4'h3, 3'b110, ra[4:0], rb[3:0] };
@@ -382,43 +382,43 @@ module memory(
 
    initial begin
       done <= 0;
-      mem['h0000] = I_LD_IL(0, 'h04);  // LD r0.l, 04h
-      mem['h0001] = I_LD_IH(0, 'h00);  // LD r0.h, 00h
-      mem['h0002] = I_LD_IL(1, 'h01);  // LD r1.l, 01h
-      mem['h0003] = I_LD_IH(1, 'h00);  // LD r1.h, 00h
-      mem['h0004] = I_LD_IL(2, 'h10);  // LD r2.l, 10h  LOOP0
-      mem['h0005] = I_LD_IH(2, 'h00);  // LD r2.h, 00h
-      mem['h0006] = I_LD_IL(3, 'h00);  // LD r3.l, 00h  work area
-      mem['h0007] = I_LD_IH(3, 'h20);  // LD r3.h, 20h
+      mem['h0000] = I_LD_RL_I(0, 'h04);  // LD r0.l, 04h
+      mem['h0001] = I_LD_RH_I(0, 'h00);  // LD r0.h, 00h
+      mem['h0002] = I_LD_RL_I(1, 'h01);  // LD r1.l, 01h
+      mem['h0003] = I_LD_RH_I(1, 'h00);  // LD r1.h, 00h
+      mem['h0004] = I_LD_RL_I(2, 'h10);  // LD r2.l, 10h  LOOP0
+      mem['h0005] = I_LD_RH_I(2, 'h00);  // LD r2.h, 00h
+      mem['h0006] = I_LD_RL_I(3, 'h00);  // LD r3.l, 00h  work area
+      mem['h0007] = I_LD_RH_I(3, 'h20);  // LD r3.h, 20h
 
       // LOOP0
-      mem['h0008] = I_SUB(0, 0, 1);    // SUB r0, r0, r1
-      mem['h0009] = I_STW(0, 3);       // ST r0.w, (r3)
-      mem['h000a] = I_STB(0, 3);       // ST r0.b, (r3)
-      mem['h000b] = I_LD_IL(0, 'hff);  // LD r0.l, FFh
-      mem['h000c] = I_LD_MW(0, 3);     // LD r0.w, (r3)
-      mem['h000d] = I_LD_MB(0, 3);     // LD r0.b, (r3)
-      mem['h000e] = I_JPNZ(2);         // JPNZ (r2)
-      mem['h000f] = I_NOP();           // NOP
+      mem['h0008] = I_SUB(0, 0, 1);      // SUB r0, r0, r1
+      mem['h0009] = I_LD_M_RW(3, 0);     // LD (r3), r0.w
+      mem['h000a] = I_LD_M_RB(3, 0);     // LD (r3), r0.b
+      mem['h000b] = I_LD_RL_I(0, 'hff);  // LD r0.l, FFh
+      mem['h000c] = I_LD_RW_M(0, 3);     // LD r0.w, (r3)
+      mem['h000d] = I_LD_RB_M(0, 3);     // LD r0.b, (r3)
+      mem['h000e] = I_JP_NZ(2);          // JP NZ, (r2)
+      mem['h000f] = I_NOP();             // NOP
 
-      mem['h0010] = I_LD_IL(2, 'h2c);  // LD r2.l, 2ch  LOOP1
-      mem['h0011] = I_LD_IH(2, 'h00);  // LD r2.h, 00h
-      mem['h0012] = I_LD_IL(3, 'h20);  // LD r3.l, 20h  message
-      mem['h0013] = I_LD_IH(3, 'h20);  // LD r3.h, 20h
-      mem['h0014] = I_LD_IL(4, 'h00);  // LD r4.l, 00h  UART TX
-      mem['h0015] = I_LD_IH(4, 'h00);  // LD r4.h, 00h
+      mem['h0010] = I_LD_RL_I(2, 'h2c);  // LD r2.l, 2ch  LOOP1
+      mem['h0011] = I_LD_RH_I(2, 'h00);  // LD r2.h, 00h
+      mem['h0012] = I_LD_RL_I(3, 'h20);  // LD r3.l, 20h  message
+      mem['h0013] = I_LD_RH_I(3, 'h20);  // LD r3.h, 20h
+      mem['h0014] = I_LD_RL_I(4, 'h00);  // LD r4.l, 00h  UART TX
+      mem['h0015] = I_LD_RH_I(4, 'h00);  // LD r4.h, 00h
 
       // LOOP1
-      mem['h0016] = I_LD_MB(0, 3);     // LD r0.l, (r3)
-      mem['h0017] = I_OUTB(0, 4);      // OUTB r0, (r4)
-      mem['h0018] = I_ADD(3, 3, 1);    // ADD r3, r3, r1  r3 = r3 + 1
-      mem['h0019] = I_ADD(0, 0, 0);    // ADD r0, r0, r0  r0 == 0 ?
-      mem['h001a] = I_JPNZ(2);         // JPNZ (r2)
+      mem['h0016] = I_LD_RB_M(0, 3);     // LD r0.l, (r3)
+      mem['h0017] = I_OUTB(4, 0);        // OUTB (r4), r0
+      mem['h0018] = I_ADD(3, 3, 1);      // ADD r3, r3, r1  r3 = r3 + 1
+      mem['h0019] = I_ADD(0, 0, 0);      // ADD r0, r0, r0  r0 == 0 ?
+      mem['h001a] = I_JP_NZ(2);          // JP NZ, (r2)
 
-      mem['h001b] = I_HALT();          // HALT
+      mem['h001b] = I_HALT();            // HALT
 
-      mem['h1000] = 'h0000;            // work area
-      mem['h1010] = { "e", "H" };      // message
+      mem['h1000] = 'h0000;              // work area
+      mem['h1010] = { "e", "H" };        // message
       mem['h1011] = { "l", "l" };
       mem['h1012] = { ",", "o" };
       mem['h1013] = { "w", " " };
