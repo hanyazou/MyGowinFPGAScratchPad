@@ -1,135 +1,9 @@
 `default_nettype none
 
-typedef logic [15:0] reg_t;
-typedef logic [15:0] ins_t;
-typedef bit [4:0] reg_num_t;
-typedef bit [3:0] flag_num_t;
-typedef logic [15:0] bus_data_t;
-typedef logic [15:0] bus_addr_t;
-typedef logic [2:0] bus_cmd_t;
-typedef bit [0:0] bus_num_t;
-localparam bus_numbuses = 2;
+`include "h80cpu.svh"
+`include "h80cpu_instmacros.svh"
 
-localparam reg_flag = 16;
-localparam reg_flag_zero = 0;
-localparam reg_pc = 17;
-localparam reg_sp = 18;
-localparam reg_bp = 19;
-localparam reg_numregs = 20;
-
-localparam bus_cmd_write =   3'b000;
-localparam bus_cmd_read =    3'b001;
-localparam bus_cmd_write_w = 3'b010;
-localparam bus_cmd_read_w =  3'b011;
-localparam bus_cmd_write_b = 3'b100;
-localparam bus_cmd_read_b =  3'b101;
-
-localparam BUS_MEM = 1'b0;
-localparam BUS_IO = 1'b1;
-
-//  0 0000_0000_0000  NOP
-function [15:0] I_NOP;
-   return { 4'h0, 12'b0000_0000_0000 };
-endfunction
-
-//  0 0000_0000_0001  HALT
-function [15:0] I_HALT;
-   return { 4'h0, 12'b0000_0000_0001 };
-endfunction
-
-//  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
-function [15:0] I_JP_N_(flag_num_t f, reg_num_t r);
-   return { 4'h0, 6'b0100_00, f[1:0], r[3:0] };
-endfunction
-function [15:0] I_JP_NZ(reg_num_t r);
-   return I_JP_N_(reg_flag_zero, r);
-endfunction
-
-//  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-function [15:0] I_LD_RL_I(reg_num_t r, int i);
-   return { 4'h1, r[3:0], i[7:0]};
-endfunction
-
-//  2 dddd_nnnn_nnnn  reg[D][15:8] = 8'hzz
-function [15:0] I_LD_RH_I(reg_num_t r, int i);
-   return { 4'h2, r[3:0], i[7:0]};
-endfunction
-
-//
-//  memory load/store
-//
-//  3 ttt0_aaaa_abbb R/W reg[A] from/to memory address reg[B]
-function [15:0] I_LD_M_R (reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write,   BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_LD_R_M (reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read,    BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_LD_M_RW(reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write_w, BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_LD_RW_M(reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read_w,  BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_LD_M_RB(reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write_b, BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_LD_RB_M(reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read_b,  BUS_MEM, ra[3:0], rb[3:0] };
-endfunction
-
-//
-//  I/O read/write
-//
-//  3 ttt1_aaaa_abbb R/W reg[A] from/to I/O address reg[B]
-function [15:0] I_OUT (reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write,   BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_IN  (reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read,    BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_OUTW(reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write_w, BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_INW (reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read_w,  BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_OUTB(reg_num_t rb, reg_num_t ra);
-   return { 4'h3, bus_cmd_write_b, BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-function [15:0] I_INB (reg_num_t ra, reg_num_t rb);
-   return { 4'h3, bus_cmd_read_b,  BUS_IO, ra[3:0], rb[3:0] };
-endfunction
-
-//
-//  move
-//
-function [15:0] I_LD_R_R(reg_num_t rb, reg_num_t ra);
-   if (ra[4] && ~rb[4])
-     //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
-     return { 4'h3, 3'b110, ra[4:0], rb[3:0] };
-   else
-   if (~ra[4] && rb[4])
-     //  3 111a_aaaa_bbbb  move reg[B] to reg[A]
-     return { 4'h3, 3'b111, rb[4:0], ra[3:0] };
-   else
-     return { 4'h0, 4'h0, 8'hff };  // invalid instruction
-endfunction
-
-//
-//  three register operations
-//
-//  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
-function [15:0] I_ADD(reg_num_t dst, reg_num_t ra, reg_num_t rb);
-   return { 4'h8, dst[3:0], ra[3:0], rb[3:0] };
-endfunction
-
-//  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-function [15:0] I_SUB(reg_num_t dst, reg_num_t ra, reg_num_t rb);
-   return { 4'h9, dst[3:0], ra[3:0], rb[3:0] };
-endfunction
-
-module top(
+module h80cpu(
    input wire logic sysclk, S1, S2,
    output wire logic spi_clk, dout, cs, stop,
    output wire logic [10:1] pin,
@@ -230,10 +104,10 @@ module top(
                        bus_cmd[2:0] };
    assign frame[7] = regs[reg_flag][7:0];
 
-   memory mem(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
-              bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
-   io io_i(clk, reset, bus_addr, bus_cmd, bus_run[BUS_IO], bus_wr_data,
-              bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
+   h80cpu_mem mem0(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
+                   bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
+   h80cpu_io io0(clk, reset, bus_addr, bus_cmd, bus_run[BUS_IO], bus_wr_data,
+                 bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
 
    task start_instruction_fetch(bus_addr_t addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
@@ -366,7 +240,7 @@ module top(
 endmodule
 
 
-module memory(
+module h80cpu_mem(
    input wire clk,
    input wire reset,
    input wire bus_addr_t addr,
@@ -459,80 +333,5 @@ module memory(
          endcase
       end // else: !if(reset)
    end // always @ (posedge clk)
-
-endmodule
-
-
-module io(
-   input wire clk,
-   input wire reset,
-   input wire bus_addr_t addr,
-   input wire bus_cmd_t cmd,
-   input wire run,
-   input wire bus_data_t wr_data,
-   ref bus_data_t rd_data,
-   output logic done,
-   input wire sysclk,
-   output wire uart_txp
-   );
-
-   reg prev_clk;
-   reg uart_en = 0;
-   reg [7:0] uart_tx = 0;
-   wire uart_busy;
-   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
-       tx(sysclk, uart_tx, uart_en, uart_busy, uart_txp);
-   
-   localparam S_IDLE = 'h0;
-   localparam S_WAIT_UART = 'h1;
-   reg [1:0] state = S_IDLE;
-
-   initial begin
-      done <= 0;
-   end
-
-   always @(posedge sysclk) begin
-      prev_clk <= clk;
-      if (reset) begin
-         state <= 0;
-         done <= 0;
-         uart_en <= 0;
-      end else begin
-         if (~uart_busy) begin
-            uart_en <= 0;
-         end
-
-         // posedge clk
-         if (~prev_clk && clk)  begin
-            case (state)
-            S_IDLE: begin
-               if (run != done) begin
-                  case (addr)
-                  'h0000: begin
-                     if (cmd == bus_cmd_write_b) begin
-                        if (!uart_busy) begin
-                           uart_tx <= wr_data[7:0];
-                              uart_en <= 1;
-                           done <= ~done;
-                        end else begin
-                          state <= S_WAIT_UART;
-                        end
-                     end
-                  end
-                  endcase
-               end
-            end
-            S_WAIT_UART: begin
-               if (!uart_en && !uart_busy) begin
-                  uart_tx <= wr_data[7:0];
-                  uart_en <= 1;
-                  done <= ~done;
-                  state <= S_IDLE;
-               end
-            end
-            endcase
-         end
-      end // else: !if(reset)
-   end // always @ (posedge sysclk)
 
 endmodule
