@@ -5,7 +5,7 @@ module h80cpu_io(
    input wire bus_cmd_t cmd,
    input wire run,
    input wire bus_data_t wr_data,
-   ref bus_data_t rd_data,
+   output bus_data_t rd_data,
    output logic done,
    input wire sysclk,
    output wire uart_txp
@@ -27,6 +27,7 @@ module h80cpu_io(
    end
 
    always @(posedge sysclk) begin
+      rd_data <= 0;
       prev_clk <= clk;
       if (reset) begin
          state <= 0;

@@ -20,7 +20,7 @@ module h80cpu(
    bus_num_t bus_num;
    reg bus_run[bus_numbuses];
    bus_data_t bus_wr_data;
-   bus_data_t bus_rd_data[bus_numbuses];
+   wire bus_data_t bus_rd_data[bus_numbuses];
    reg_num_t bus_rd_reg;
 
    wire reg_t pc;
@@ -103,6 +103,8 @@ module h80cpu(
    assign frame[6] = { clk, clk_autorun, bus_run[BUS_MEM], bus_done[BUS_MEM], state[0:0],
                        bus_cmd[2:0] };
    assign frame[7] = regs[reg_flag][7:0];
+   int do_memory_access;
+   int tmp;
 
    h80cpu_mem mem0(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
                    bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
@@ -133,7 +135,6 @@ module h80cpu(
    endfunction
 
    always @(negedge clk) begin
-      automatic int tmp;
       if (reset) begin
          regs[reg_pc] <= 'h0000;
          regs[reg_flag] <= 'h0000;
@@ -154,7 +155,7 @@ module h80cpu(
       end else
       case (state)
       S_FETCH_EXEC: begin  // fetch and execution
-         automatic int do_memory_access = 0;
+         do_memory_access = 0;
          next_ins_addr = regs[reg_pc] + 2;
          casez (ins)
          16'b0000_0000_0000_0000: begin  //  0 0000_0000_0000  NOP
@@ -247,7 +248,7 @@ module h80cpu_mem(
    input wire bus_cmd_t cmd,
    input wire run,
    input wire bus_data_t wr_data,
-   ref bus_data_t rd_data,
+   output bus_data_t rd_data,
    output logic done
    );
 
