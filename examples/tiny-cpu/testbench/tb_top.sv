@@ -1,0 +1,54 @@
+module main();
+
+   `include "tb.svh"
+   `include "tb_h80cpu.svh"
+
+   task tb_test00();
+      bus_data_t data;
+
+      tb_begin("test00");
+      cpu_init();
+
+      mem_write('h0000, I_LD_RL_I(0, 'h04));  // LD r0.l, 04h
+      mem_write('h0002, I_LD_RH_I(0, 'h00));  // LD r0.h, 00h
+      mem_write('h0004, I_LD_RL_I(1, 'h01));  // LD r1.l, 01h
+      mem_write('h0006, I_LD_RH_I(1, 'h00));  // LD r1.h, 00h
+      mem_write('h0008, I_LD_RL_I(2, 'h12));  // LD r2.l, 12h
+      mem_write('h000a, I_LD_RH_I(2, 'h00));  // LD r2.h, 00h
+      mem_write('h000c, I_LD_RL_I(3, 'h00));  // LD r3.l, 00h
+      mem_write('h000e, I_LD_RH_I(3, 'h20));  // LD r3.h, 20h
+      mem_write('h0010, I_HALT());            // HALT
+
+      mem_write('h0012, I_SUB(0, 0, 1));      // SUB r0, r0, r1
+      mem_write('h0014, I_LD_M_RW(3, 0));     // LD (r3), r0.w
+      mem_write('h0016, I_LD_M_RB(3, 0));     // LD (r3), r0.b
+      mem_write('h0018, I_LD_RL_I(0, 'hff));  // LD r0.l, FFh
+      mem_write('h001a, I_LD_RW_M(0, 3));     // LD r0.w, (r3)
+      mem_write('h001c, I_LD_RB_M(0, 3));     // LD r0.b, (r3)
+      mem_write('h001e, I_JP_NZ(2));          // JP NZ, (r2)
+      mem_write('h0020, I_HALT());            // HALT
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === 'h0012);
+      `tb_assert(regs[0] === 'h0004);
+      `tb_assert(regs[1] === 'h0001);
+      `tb_assert(regs[2] === 'h0012);
+      `tb_assert(regs[3] === 'h2000);
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === 'h0022);
+      `tb_assert(regs[0] === 'h0000);
+      mem_read(bus_addr_t'('h2000), data);
+      `tb_assert(data === 'h0000);
+
+      tb_end();
+
+   endtask // tb_test00
+         
+   initial begin
+      tb_init();
+      tb_test00();
+      tb_finish();
+   end
+
+endmodule

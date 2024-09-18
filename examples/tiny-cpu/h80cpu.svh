@@ -13,7 +13,9 @@ localparam reg_flag_zero = 0;
 localparam reg_pc = 17;
 localparam reg_sp = 18;
 localparam reg_bp = 19;
-localparam reg_numregs = 20;
+localparam reg_stat = 20;
+localparam reg_stat_halt = 0;
+localparam reg_numregs = 24;
 
 localparam bus_cmd_write =   3'b000;
 localparam bus_cmd_read =    3'b001;

@@ -13,7 +13,6 @@ module h80cpu(
 
    parameter SYSCLK_FREQ = 27000000;
 
-   reg halt;
    reg_t regs[reg_numregs];
    assign regs_ = regs;
    enum { S_FETCH_EXEC, S_BUS_RW } state;
@@ -79,11 +78,28 @@ module h80cpu(
       return bus_sel ? BUS_IO : BUS_MEM;
    endfunction
 
+   task bus_rw(bus_num_t bus, bus_cmd_t cmd, bus_addr_t addr, bus_data_t wr_data = 0);
+      bus_cmd = cmd;
+      bus_addr = addr;
+      bus_num = bus;
+      bus_wr_data = wr_data;
+      bus_run[bus] = ~bus_run[bus];
+   endtask
+
+   task bus_wait(bus_num_t bus, output busy, output bus_data_t rd_data);
+      rd_data = bus_rd_data[bus];
+      busy = (bus_run[bus] != bus_done[bus]);
+   endtask
+
+   task set_halt(bit halt_);
+      regs[reg_stat][reg_stat_halt] = halt_;
+   endtask
+
    always @(negedge clk) begin
       if (reset) begin
          regs[reg_pc] <= 'h0000;
          regs[reg_flag] <= 'h0000;
-         halt <= 0;
+         regs[reg_stat] <= 'h0000;
          bus_run[BUS_IO] <= 0;
          state <= S_FETCH_EXEC;
 
@@ -92,7 +108,7 @@ module h80cpu(
          bus_cmd <= bus_cmd_read_w;
          bus_run[BUS_MEM] <= 1;
       end else
-      if (halt) begin
+      if (regs[reg_stat][reg_stat_halt]) begin
          // halted with no execution
       end else
       if (bus_busy) begin
@@ -107,7 +123,7 @@ module h80cpu(
             // no operation
          end
          16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
-            halt <= 1;
+            regs[reg_stat][reg_stat_halt] <= 1;
          end
          16'b0000_0100_00zz_zzzz: begin  //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
             if (!regs[reg_flag][ins[5:4]])
