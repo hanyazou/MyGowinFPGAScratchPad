@@ -125,6 +125,12 @@ module h80cpu(
          16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
             regs[reg_stat][reg_stat_halt] <= 1;
          end
+         16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_rrrr  LD R, nnnn
+            bus_rd_reg <= ins[3:0];
+            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_pc] + 2);
+            next_ins_addr = regs[reg_pc] + 4;
+            do_memory_access = 1;
+         end
          16'b0000_0100_00zz_zzzz: begin  //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
             if (!regs[reg_flag][ins[5:4]])
                `register(reg_pc, regs[ins[3:0]]);

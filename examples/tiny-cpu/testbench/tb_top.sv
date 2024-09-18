@@ -44,10 +44,47 @@ module main();
       tb_end();
 
    endtask // tb_test00
-         
+
+   task tb_test_LD_r_nnnn();
+      bus_data_t data;
+
+      tb_begin("test_LD_r_nnnn");
+      cpu_init();
+
+      mem_write('h0000, I_LD_RW_I(0));        // LD r0.w, 1234h
+      mem_write('h0002, 'h1234);
+      mem_write('h0004, I_LD_RW_I(1));        // LD r1.w, 2000h
+      mem_write('h0006, 'h2000);
+      mem_write('h0008, I_HALT());            // HALT
+
+      mem_write('h000a, I_LD_M_RW(1, 0));     // LD (r1), r0.w
+      mem_write('h000c, I_LD_RW_I(0));        // LD r0.w, 5678h
+      mem_write('h000e, 'h5678);
+      mem_write('h0010, I_HALT());            // HALT
+
+      mem_write('h2000, 'h0000);
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === 'h000a);
+      `tb_assert(regs[0] === 'h1234);
+      `tb_assert(regs[1] === 'h2000);
+      mem_read('h2000, data);
+      `tb_assert(data === 'h0000);
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === 'h0012);
+      `tb_assert(regs[0] === 'h5678);
+      mem_read('h2000, data);
+      `tb_assert(data === 'h1234);
+
+      tb_end();
+
+   endtask // tb_test_LD_r_nnnn
+
    initial begin
       tb_init();
       tb_test00();
+      tb_test_LD_r_nnnn();
       tb_finish();
    end
 

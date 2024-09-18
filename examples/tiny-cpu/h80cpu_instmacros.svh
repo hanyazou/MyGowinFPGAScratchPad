@@ -8,6 +8,11 @@ function [15:0] I_HALT;
    return { 4'h0, 12'b0000_0000_0001 };
 endfunction
 
+//  0 0001_1011_rrrr  LD R, nnnn
+function ins_t I_LD_RW_I(reg_num_t r);
+   return { 4'h0, 8'b0001_1011, r[3:0] };
+endfunction
+
 //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
 function [15:0] I_JP_N_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0100_00, f[1:0], r[3:0] };
