@@ -125,11 +125,76 @@ module h80cpu(
          16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
             regs[reg_stat][reg_stat_halt] <= 1;
          end
+         16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
+            // TODO
+         end
+
+         // 0000_0000_0000_0011 to 1111_1110 reserved
+
+         16'b0000_0000_1111_1111: begin  //  0 0000_1111_1111 INV 無効な命令
+            // TODO
+         end
+         16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
+            // TODO
+         end
+         16'b0000_0001_0001_zzzz: begin  //  0 0001_0001_rrrr POP R
+            // TODO
+         end
+         16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
+                                         //  (copy R[15] for sign extension)
+            // TODO
+         end
+         16'b0000_0001_0011_zzzz: begin  //  0 0001_0011_rrrr EXTN R.b
+                                         //  (copy R[7] for sign extension)
+            // TODO
+         end
+         16'b0000_0001_0100_zzzz: begin  //  0 0001_0100_rrrr CPL R (invert R, one's complement)
+            // TODO
+         end
+         16'b0000_0001_0101_zzzz: begin  //  0 0001_0101_rrrr NEG R (negate R, two's complement)
+            // TODO
+         end
+         16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_ffff INV F (invert flag F)
+            // TODO
+         end
+         16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_ffff SET F (set flag F)
+            // TODO
+         end
+         16'b0000_0001_1000_zzzz: begin  //  0 0001_1000_ffff CLR F (clear flag F)
+            // TODO
+         end
+         16'b0000_0001_1001_zzzz: begin  //  0 0001_1001_nnnn RST n (call address n * 8)
+            // TODO
+         end
+         16'b0000_0001_1010_zzzz: begin  //  0 0001_1010_rrrr  LD R, nnnnnnnn
+            // TODO
+         end
          16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_rrrr  LD R, nnnn
             bus_rd_reg <= ins[3:0];
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_pc] + 2);
             next_ins_addr = regs[reg_pc] + 4;
             do_memory_access = 1;
+         end
+         16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
+            // TODO
+         end
+         16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_rrrr JP R
+            // TODO
+         end
+         16'b0000_0001_1110_zzzz: begin  //  0 0001_1110_rrrr JR R
+            // TODO
+         end
+         16'b0000_0001_1111_00zz: begin  //  0 0001_1111_00ff RET_N f
+            // TODO
+         end
+         16'b0000_0001_1111_01zz: begin  //  0 0001_1111_01ff RET f
+            // TODO
+         end
+         16'b0000_0010_00zz_zzzz: begin  //  0 0010_00ff_rrrr CALLN f, (R) (call R if f is false)
+            // TODO
+         end
+         16'b0000_0010_01zz_zzzz: begin  //  0 0010_01ff_rrrr CALL  f, (R) (call R if f is true)
+            // TODO
          end
          16'b0000_0100_00zz_zzzz: begin  //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
             if (!regs[reg_flag][ins[5:4]])
@@ -139,6 +204,44 @@ module h80cpu(
             if (regs[reg_flag][ins[5:4]])
                `register(reg_pc, regs[ins[3:0]]);
          end
+         16'b0000_0100_10zz_zzzz: begin  //  0 0100_10ff_rrrr JRN f, (R) (jump to R if F is false)
+            // TODO
+            if (!regs[reg_flag][ins[5:4]])
+               `register(reg_pc, reg_pc + regs[ins[3:0]]);
+         end
+         16'b0000_0100_11zz_zzzz: begin  //  0 0100_11ff_rrrr JR  f, (R) (jump to R if F is true)
+            // TODO
+            if (regs[reg_flag][ins[5:4]])
+               `register(reg_pc, reg_pc + regs[ins[3:0]]);
+         end
+         16'b0000_0101_zzzz_zzzz: begin  //  0 0101_aaaa_bbbb DJNZ A, (B)
+                                         //  (decrement A and jump to B if A is not zero)
+            // TODO
+         end
+         16'b0000_011z_zzzz_zzzz: begin  //  0 011a_aaaa_bbbb EX A, B
+            // TODO
+         end
+
+         16'b0000_1000_zzzz_zzzz: begin  //  0 1000_rrrr_nnnn ADD R, n
+            // TODO
+         end
+         16'b0000_1001_zzzz_zzzz: begin  //  0 1001_rrrr_nnnn SUB R, n
+            // TODO
+         end
+
+         16'b0000_1100_zzzz_zzzz: begin  //  0 1100_rrrr_nnnn SRA R, n (shift right arithmetic)
+            // TODO
+         end
+         16'b0000_1101_zzzz_zzzz: begin  //  0 1101_rrrr_nnnn SRL R, n (shift right logical)
+            // TODO
+         end
+         16'b0000_1110_zzzz_zzzz: begin  //  0 1110_rrrr_nnnn SL  R, n (shift left)
+            // TODO
+         end
+         16'b0000_1111_zzzz_zzzz: begin  //  0 1111_rrrr_nnnn RLC R, n (rotate left circular)
+            // TODO
+         end
+
          16'b0001_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
             `register(ins[11:8], regs[ins[11:8]] & 'hff00 | (ins & 'hff));
          end
