@@ -44,7 +44,7 @@ module main();
       tb_end();
 
    endtask // tb_test00
-         
+
    task tb_test_LD_r_nnnn();
       bus_data_t data;
 
@@ -79,8 +79,8 @@ module main();
 
       tb_end();
 
-   endtask // tb_test00
-         
+   endtask // tb_test_LD_r_nnnn
+
    initial begin
       tb_init();
       tb_test00();
