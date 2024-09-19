@@ -126,7 +126,10 @@ module h80cpu(
             regs[reg_stat][reg_stat_halt] <= 1;
          end
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
-            // TODO
+            bus_rd_reg <= reg_pc;
+            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
+            regs[reg_sp] <= regs[reg_sp] + 2;
+            do_memory_access = 1;
          end
 
          // 0000_0000_0000_0011 to 1111_1110 reserved
@@ -182,7 +185,11 @@ module h80cpu(
             do_memory_access = 1;
          end
          16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
-            // TODO
+            bus_wr_data <= regs[reg_pc] + 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
+            regs[reg_sp] <= regs[reg_sp] - 2;
+            next_ins_addr = regs[ins[3:0]];
+            do_memory_access = 1;
          end
          16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_rrrr JP R
             // TODO
