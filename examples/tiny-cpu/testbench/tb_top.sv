@@ -81,10 +81,68 @@ module main();
 
    endtask // tb_test_LD_r_nnnn
 
+   task tb_test_move();
+      bus_addr_t addr;
+      bus_data_t data;
+
+      tb_begin("test_move");
+      cpu_init();
+
+      addr = 'h0000;
+      mem_write(addr, I_LD_RW_I(5));          // LD r5.w, ba98h
+      addr += 2;
+      mem_write(addr, 'hba98);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(6));          // LD r6.w, fedch
+      addr += 2;
+      mem_write(addr, 'hfedc);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(10));         // LD r10.w, 0000h
+      addr += 2;
+      mem_write(addr, 'h0000);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(11));         // LD r11.w, 0000h
+      addr += 2;
+      mem_write(addr, 'h0000);
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[5] === 'hba98);
+      `tb_assert(regs[6] === 'hfedc);
+      `tb_assert(regs[10] === 'h0000);
+      `tb_assert(regs[11] === 'h0000);
+
+      mem_write(addr, I_LD_R_R(22, 5));       // LD r22, r5
+      addr += 2;
+      mem_write(addr, I_LD_R_R(23, 6));       // LD r23, r6
+      addr += 2;
+      mem_write(addr, I_LD_R_R(10, 22));      // LD r10, r22
+      addr += 2;
+      mem_write(addr, I_LD_R_R(11, 23));      // LD r11, r23
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[22] === 'hba98);
+      `tb_assert(regs[23] === 'hfedc);
+      `tb_assert(regs[10] === 'hba98);
+      `tb_assert(regs[11] === 'hfedc);
+
+      reg_dump(0, reg_numregs - 1);
+      tb_end();
+
+   endtask // tb_test_stack
+
    initial begin
       tb_init();
       tb_test00();
       tb_test_LD_r_nnnn();
+      tb_test_move();
       tb_finish();
    end
 
