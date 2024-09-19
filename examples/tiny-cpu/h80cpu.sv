@@ -253,7 +253,9 @@ module h80cpu(
          // bus read/write 
          //
          //  3 tttn_aaaa_bbbb R/W reg[A] from/to address reg[B]
-         16'b0011_zzzz_zzzz_zzzz:  begin
+         16'b0011_00zz_zzzz_zzzz,
+         16'b0011_01zz_zzzz_zzzz,
+         16'b0011_10zz_zzzz_zzzz:  begin
             bus_wr_data <= regs[ins[7:4]];
             bus_rd_reg <= ins[7:4];
             bus_run_cmd(bus(ins[8]), ins[11:9], regs[ins[3:0]]);
@@ -265,7 +267,7 @@ module h80cpu(
          //
          16'b0011_110z_zzzz_zzzz:  begin
             //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
-           `register(ins[3:0], regs[ins[8:4]]);
+            `register(ins[3:0], regs[ins[8:4]]);
          end
          16'b0011_111z_zzzz_zzzz:  begin
             //  3 111a_aaaa_bbbb  move reg[B] to reg[A]
