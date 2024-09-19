@@ -153,6 +153,9 @@ module main();
       tb_begin("test_stack");
       cpu_init();
 
+      /*
+       * PUSH and POP
+       */
       addr = 'h0000;
       mem_write(addr, I_LD_RW_I(8));          // LD r8.w, 89abh
       addr += 2;
@@ -220,6 +223,40 @@ module main();
       `tb_assert(data === 'hcdef);
       mem_read('h1ffe, data);
       `tb_assert(data === 'h89ab);
+
+      /*
+       * CALL and RET
+       */
+      mem_write(addr, I_LD_RW_I(0));          // LD r0.w, 1000h
+      addr += 2;
+      mem_write(addr, 'h1000);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(7));          // LD r7.w, ffffh
+      addr += 2;
+      mem_write(addr, 'hffff);
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[0] === 'h1000);
+      `tb_assert(regs[7] === 'hffff);
+
+      mem_write(addr, I_CALL_R(0));           // CALL (r0)
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      addr = 'h1000;
+      mem_write(addr, I_LD_RW_I(7));          // LD r7.w, cdefh
+      addr += 2;
+      mem_write(addr, 'hcdef);
+      addr += 2;
+      mem_write(addr, I_RET());               // RET
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[7] === 'hcdef);
 
       tb_end();
 
