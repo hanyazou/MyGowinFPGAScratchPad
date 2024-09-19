@@ -138,11 +138,91 @@ module main();
 
    endtask // tb_test_stack
 
+   task tb_test_stack();
+      bus_addr_t addr;
+      bus_data_t data;
+
+      tb_begin("test_stack");
+      cpu_init();
+
+      addr = 'h0000;
+      mem_write(addr, I_LD_RW_I(8));          // LD r8.w, 89abh
+      addr += 2;
+      mem_write(addr, 'h89ab);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(9));          // LD r9.w, cdefh
+      addr += 2;
+      mem_write(addr, 'hcdef);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(0));          // LD a0.w, 2000h
+      addr += 2;
+      mem_write(addr, 'h2000);
+      addr += 2;
+      mem_write(addr, I_LD_R_R(reg_sp, 0));   // LD sp, a0
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      mem_write('h1ffa, 'h0000);
+      mem_write('h1ffc, 'h0000);
+      mem_write('h1ffe, 'h0000);
+      
+      cpu_run();
+      mem_dump('h1ff0, 16);
+      reg_dump(0, reg_numregs - 1);
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[8] === 'h89ab);
+      `tb_assert(regs[9] === 'hcdef);
+      `tb_assert(regs[reg_sp] === 'h2000);
+
+      mem_write(addr, I_PUSH_R(8));           // PUSH (r8)
+      addr += 2;
+      mem_write(addr, I_PUSH_R(9));           // PUSH (r9)
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[8] === 'h89ab);
+      `tb_assert(regs[9] === 'hcdef);
+      `tb_assert(regs[reg_sp] === 'h1ffc);
+      mem_read('h1ffa, data);
+      `tb_assert(data === 'h0000);
+      mem_read('h1ffc, data);
+      `tb_assert(data === 'hcdef);
+      mem_read('h1ffe, data);
+      `tb_assert(data === 'h89ab);
+
+      mem_write(addr, I_POP_R(8));            // POP (r8)
+      addr += 2;
+      mem_write(addr, I_POP_R(9));            // POP (r9)
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[8] === 'hcdef);
+      `tb_assert(regs[9] === 'h89ab);
+      `tb_assert(regs[reg_sp] === 'h2000);
+      mem_read('h1ffa, data);
+      `tb_assert(data === 'h0000);
+      mem_read('h1ffc, data);
+      `tb_assert(data === 'hcdef);
+      mem_read('h1ffe, data);
+      `tb_assert(data === 'h89ab);
+
+      tb_end();
+
+   endtask // tb_test_stack
+
    initial begin
       tb_init();
       tb_test00();
       tb_test_LD_r_nnnn();
       tb_test_move();
+      tb_test_stack();
       tb_finish();
    end
 

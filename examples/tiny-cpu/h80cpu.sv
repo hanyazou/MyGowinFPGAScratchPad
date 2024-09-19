@@ -135,10 +135,16 @@ module h80cpu(
             // TODO
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
-            // TODO
+            bus_wr_data <= regs[ins[3:0]];
+            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
+            regs[reg_sp] <= regs[reg_sp] - 2;
+            do_memory_access = 1;
          end
          16'b0000_0001_0001_zzzz: begin  //  0 0001_0001_rrrr POP R
-            // TODO
+            bus_rd_reg <= ins[3:0];
+            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
+            regs[reg_sp] <= regs[reg_sp] + 2;
+            do_memory_access = 1;
          end
          16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
                                          //  (copy R[15] for sign extension)
