@@ -13,6 +13,7 @@
       integer i;
       for (i = 0; i < n; i++) begin
          #1 clk = ~clk;
+         #1 clk = ~clk;
       end
    endtask
 
@@ -35,7 +36,6 @@
       reset = 0;
       for (clk = 0; !regs[reg_stat][reg_stat_halt] && (max_clks < 0 || clk < max_clks); clk++)
         cpu_run_clk(1);
-      cpu_run_clk(1);
    endtask
 
    task cpu_cont(integer max_clks = -1);
@@ -45,13 +45,12 @@
       cpu0.set_halt(0);
       for (clk = 0; !regs[reg_stat][reg_stat_halt] && (max_clks < 0 || clk < max_clks); clk++)
         cpu_run_clk(1);
-      cpu_run_clk(1);
    endtask
 
    task mem_write(input bus_addr_t addr, input bus_data_t data);
       reg logic busy;
       cpu0.bus_rw(BUS_MEM, bus_cmd_write_w, addr, data);
-      cpu_run_clk(2);
+      cpu_run_clk(1);
       cpu0.bus_wait(BUS_MEM, busy, data);
       if (busy) begin
          $display("mem_write: busy at %h", bus_addr_t'(addr));
@@ -61,7 +60,7 @@
    task mem_read(input bus_addr_t addr, output bus_data_t data);
       reg logic busy;
       cpu0.bus_rw(BUS_MEM, bus_cmd_read_w, addr);
-      cpu_run_clk(2);
+      cpu_run_clk(1);
       cpu0.bus_wait(BUS_MEM, busy, data);
       if (busy) begin
          $display("mem_read: busy at %h", bus_addr_t'(addr));
