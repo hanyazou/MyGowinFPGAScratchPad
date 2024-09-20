@@ -131,10 +131,14 @@ module h80cpu(
             regs[reg_sp] <= regs[reg_sp] + 2;
             do_memory_access = 1;
          end
-
-         // 0000_0000_0000_0011 to 1111_1110 reserved
-
-         16'b0000_0000_1111_1111: begin  //  0 0000_1111_1111 INV 無効な命令
+         // 0000_0000_0000_0011 to 0111_1110 reserved
+         16'b0000_0000_0111_1111: begin  //  0 0000_0111_1111 INV 無効な命令
+            // TODO
+         end
+         16'b0000_0000_1000_00zz: begin  //  0 0000_1000_00ff RET_N f
+            // TODO
+         end
+         16'b0000_0000_1000_01zz: begin  //  0 0000_1000_01ff RET f
             // TODO
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
@@ -163,26 +167,26 @@ module h80cpu(
          16'b0000_0001_0101_zzzz: begin  //  0 0001_0101_rrrr NEG R (negate R, two's complement)
             // TODO
          end
-         16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_ffff INV F (invert flag F)
+         16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_rrrr LD R, nnnnnnnn
             // TODO
          end
-         16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_ffff SET F (set flag F)
-            // TODO
-         end
-         16'b0000_0001_1000_zzzz: begin  //  0 0001_1000_ffff CLR F (clear flag F)
-            // TODO
-         end
-         16'b0000_0001_1001_zzzz: begin  //  0 0001_1001_nnnn RST n (call address n * 8)
-            // TODO
-         end
-         16'b0000_0001_1010_zzzz: begin  //  0 0001_1010_rrrr  LD R, nnnnnnnn
-            // TODO
-         end
-         16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_rrrr  LD R, nnnn
+         16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_rrrr LD R, nnnn
             bus_rd_reg <= ins[3:0];
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_pc] + 2);
             next_ins_addr = regs[reg_pc] + 4;
             do_memory_access = 1;
+         end
+         16'b0000_0001_1000_zzzz: begin  //  0 0001_1000_ffff INVF (invert flag F)
+            // TODO
+         end
+         16'b0000_0001_1001_zzzz: begin  //  0 0001_1001_ffff SETF (set flag F)
+            // TODO
+         end
+         16'b0000_0001_1010_zzzz: begin  //  0 0001_1010_ffff CLRF (clear flag F)
+            // TODO
+         end
+         16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_ffff TESTF (copy flag F to flag Z)
+            // TODO
          end
          16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
             bus_wr_data <= regs[reg_pc] + 2;
@@ -191,16 +195,13 @@ module h80cpu(
             next_ins_addr = regs[ins[3:0]];
             do_memory_access = 1;
          end
-         16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_rrrr JP R
+         16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_nnnn RST n (call address n * 8)
             // TODO
          end
-         16'b0000_0001_1110_zzzz: begin  //  0 0001_1110_rrrr JR R
+         16'b0000_0001_1110_zzzz: begin  //  0 0001_1110_rrrr JP R
             // TODO
          end
-         16'b0000_0001_1111_00zz: begin  //  0 0001_1111_00ff RET_N f
-            // TODO
-         end
-         16'b0000_0001_1111_01zz: begin  //  0 0001_1111_01ff RET f
+         16'b0000_0001_1111_zzzz: begin  //  0 0001_1111_rrrr JR R
             // TODO
          end
          16'b0000_0010_00zz_zzzz: begin  //  0 0010_00ff_rrrr CALLN f, (R) (call R if f is false)
@@ -209,51 +210,53 @@ module h80cpu(
          16'b0000_0010_01zz_zzzz: begin  //  0 0010_01ff_rrrr CALL  f, (R) (call R if f is true)
             // TODO
          end
-         16'b0000_0100_00zz_zzzz: begin  //  0 0100_00ff_rrrr JPN f, (R) (jump to R if F is false)
+         //  0 0010_10ff_rrrr reserved 空き
+         //  0 0010_11ff_rrrr reserved 空き
+         16'b0000_0011_00zz_zzzz: begin  //  0 0011_00ff_rrrr JPN f, (R) (jump to R if F is false)
             if (!regs[reg_flag][ins[5:4]])
                `register(reg_pc, regs[ins[3:0]]);
          end
-         16'b0000_0100_01zz_zzzz: begin  //  0 0100_01ff_rrrr JP  f, (R) (jump to R if F is true)
+         16'b0000_0011_01zz_zzzz: begin  //  0 0011_01ff_rrrr JP  f, (R) (jump to R if F is true)
             if (regs[reg_flag][ins[5:4]])
                `register(reg_pc, regs[ins[3:0]]);
          end
-         16'b0000_0100_10zz_zzzz: begin  //  0 0100_10ff_rrrr JRN f, (R) (jump to R if F is false)
+         16'b0000_0011_10zz_zzzz: begin  //  0 0011_10ff_rrrr JRN f, (R) (jump to R if F is false)
             // TODO
             if (!regs[reg_flag][ins[5:4]])
                `register(reg_pc, reg_pc + regs[ins[3:0]]);
          end
-         16'b0000_0100_11zz_zzzz: begin  //  0 0100_11ff_rrrr JR  f, (R) (jump to R if F is true)
+         16'b0000_0011_11zz_zzzz: begin  //  0 0011_11ff_rrrr JR  f, (R) (jump to R if F is true)
             // TODO
             if (regs[reg_flag][ins[5:4]])
                `register(reg_pc, reg_pc + regs[ins[3:0]]);
          end
-         16'b0000_0101_zzzz_zzzz: begin  //  0 0101_aaaa_bbbb DJNZ A, (B)
-                                         //  (decrement A and jump to B if A is not zero)
+         16'b0000_0100_zzzz_zzzz: begin  //  0 0100_rrrr_nnnn SRA R, n (shift right arithmetic)
             // TODO
          end
-         16'b0000_011z_zzzz_zzzz: begin  //  0 011a_aaaa_bbbb EX A, B
+         16'b0000_0101_zzzz_zzzz: begin  //  0 0101_rrrr_nnnn SRL R, n (shift right logical)
             // TODO
          end
-
+         16'b0000_0110_zzzz_zzzz: begin  //  0 0110_rrrr_nnnn SL  R, n (shift left)
+            // TODO
+         end
+         16'b0000_0111_zzzz_zzzz: begin  //  0 0111_rrrr_nnnn RLC R, n (rotate left circular)
+            // TODO
+         end
          16'b0000_1000_zzzz_zzzz: begin  //  0 1000_rrrr_nnnn ADD R, n
             // TODO
          end
          16'b0000_1001_zzzz_zzzz: begin  //  0 1001_rrrr_nnnn SUB R, n
             // TODO
          end
-
-         16'b0000_1100_zzzz_zzzz: begin  //  0 1100_rrrr_nnnn SRA R, n (shift right arithmetic)
+         16'b0000_1010_zzzz_zzzz: begin  //  0 1010_aaaa_bbbb DJNZ A, (B)
+                                         //  (decrement A and jump to B if A is not zero)
             // TODO
          end
-         16'b0000_1101_zzzz_zzzz: begin  //  0 1101_rrrr_nnnn SRL R, n (shift right logical)
+         16'b0000_110z_zzzz_zzzz: begin  //  0 110a_aaaa_bbbb EX A, B
             // TODO
          end
-         16'b0000_1110_zzzz_zzzz: begin  //  0 1110_rrrr_nnnn SL  R, n (shift left)
-            // TODO
-         end
-         16'b0000_1111_zzzz_zzzz: begin  //  0 1111_rrrr_nnnn RLC R, n (rotate left circular)
-            // TODO
-         end
+         //  0 1110_aaaa_bbbb reserved 空き
+         //  0 1111_aaaa_bbbb reserved 空き
 
          16'b0001_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
             `register(ins[11:8], regs[ins[11:8]] & 'hff00 | (ins & 'hff));
