@@ -254,6 +254,116 @@ module main();
 
    endtask // tb_test_stack
 
+   task tb_test_1reg_opr(ins_t ins, reg_num_t r, reg_t prev, reg_t result);
+      bus_addr_t addr;
+      int saved_assertion_failures;
+      string opr_name;
+
+      saved_assertion_failures = tb_assertion_failures;
+
+      casez (ins)
+      16'b0000_0001_0010_zzzz: opr_name = "EXTNW";
+      16'b0000_0001_0011_zzzz: opr_name = "EXTNB";
+      16'b0000_0001_0100_zzzz: opr_name = "  CPL";
+      16'b0000_0001_0101_zzzz: opr_name = "  NEG";
+      16'b0000_0001_1000_zzzz: opr_name = " INVF";
+      16'b0000_0001_1001_zzzz: opr_name = " SETF";
+      16'b0000_0001_1010_zzzz: opr_name = " CLRF";
+      16'b0000_0001_1011_zzzz: opr_name = "TESTF";
+      endcase // casez (ins)
+
+      $display("tb_test_1reg_opr: %s(%1d): %h -> %h", opr_name, ins[3:0], prev, result);
+
+      cpu_init();
+      addr = 'h0000;
+      mem_write(addr, I_LD_RW_I(0));          // LD r0, prev
+      addr += 2;
+      mem_write(addr, prev);
+      addr += 2;
+      mem_write(addr, I_LD_R_R(r, 0));        // LD r, r0
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === addr);
+      if (r == reg_flag)
+        `tb_assert((regs[r] & 16'hfeff) === prev); // ignore halt flag
+      else
+        `tb_assert(regs[r] === prev);
+
+      mem_write(addr, ins);                   // instruction under test
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === addr);
+      if (r == reg_flag)
+        `tb_assert((regs[r] & 16'hfeff) === result); // ignore halt flag
+      else
+        `tb_assert(regs[r] === result);
+
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         $display("tb_test_1reg_opr: %s: r%0d = %h (%h expected)", opr_name, r, regs[r], result);
+      end
+   endtask // tb_test_1reg_opr
+
+   task tb_test_1reg_oprs();
+      tb_begin("test_1reg_oprs");
+      //               instruction     reg num   before  after
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h0074, 'h0074);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h8774, 'h0074);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h0098, 'hff98);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h1298, 'hff98);
+
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'h0000, 'hffff);
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'hffff, 'h0000);
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'h7171, 'h8e8e);
+
+      tb_test_1reg_opr(I_NEG_R(0),            0,      1,     -1);
+      tb_test_1reg_opr(I_NEG_R(0),            0,     -8,      8);
+      tb_test_1reg_opr(I_NEG_R(0),            0, -12345,  12345);
+
+      tb_test_1reg_opr(I_INVF(0),      reg_flag, 'h0000, 'h0001);
+      tb_test_1reg_opr(I_INVF(1),      reg_flag, 'h0000, 'h0002);
+      tb_test_1reg_opr(I_INVF(4),      reg_flag, 'h0000, 'h0010);
+      tb_test_1reg_opr(I_INVF(7),      reg_flag, 'h0000, 'h0080);
+      tb_test_1reg_opr(I_INVF(2),      reg_flag, 'h0004, 'h0000);
+      tb_test_1reg_opr(I_INVF(3),      reg_flag, 'h0008, 'h0000);
+      tb_test_1reg_opr(I_INVF(5),      reg_flag, 'h0020, 'h0000);
+      tb_test_1reg_opr(I_INVF(6),      reg_flag, 'h0040, 'h0000);
+
+      tb_test_1reg_opr(I_SETF(0),      reg_flag, 'h0000, 'h0001);
+      tb_test_1reg_opr(I_SETF(1),      reg_flag, 'h0000, 'h0002);
+      tb_test_1reg_opr(I_SETF(4),      reg_flag, 'h0000, 'h0010);
+      tb_test_1reg_opr(I_SETF(7),      reg_flag, 'h0000, 'h0080);
+      tb_test_1reg_opr(I_SETF(2),      reg_flag, 'h0004, 'h0004);
+      tb_test_1reg_opr(I_SETF(3),      reg_flag, 'h0008, 'h0008);
+      tb_test_1reg_opr(I_SETF(5),      reg_flag, 'h0020, 'h0020);
+      tb_test_1reg_opr(I_SETF(6),      reg_flag, 'h0040, 'h0040);
+
+      tb_test_1reg_opr(I_CLRF(0),      reg_flag, 'h000f, 'h000e);
+      tb_test_1reg_opr(I_CLRF(1),      reg_flag, 'h000f, 'h000d);
+      tb_test_1reg_opr(I_CLRF(4),      reg_flag, 'h00ff, 'h00ef);
+      tb_test_1reg_opr(I_CLRF(7),      reg_flag, 'h00ff, 'h007f);
+      tb_test_1reg_opr(I_CLRF(2),      reg_flag, 'h00f0, 'h00f0);
+      tb_test_1reg_opr(I_CLRF(3),      reg_flag, 'h00f0, 'h00f0);
+      tb_test_1reg_opr(I_CLRF(5),      reg_flag, 'h000f, 'h000f);
+      tb_test_1reg_opr(I_CLRF(6),      reg_flag, 'h000f, 'h000f);
+
+      tb_test_1reg_opr(I_TESTF(0),     reg_flag, 'h0001, 'h0000);
+      tb_test_1reg_opr(I_TESTF(1),     reg_flag, 'h000f, 'h000e);
+      tb_test_1reg_opr(I_TESTF(4),     reg_flag, 'h00ff, 'h00fe);
+      tb_test_1reg_opr(I_TESTF(7),     reg_flag, 'h00ff, 'h00fe);
+      tb_test_1reg_opr(I_TESTF(2),     reg_flag, 'h00f0, 'h00f1);
+      tb_test_1reg_opr(I_TESTF(3),     reg_flag, 'h00f0, 'h00f1);
+      tb_test_1reg_opr(I_TESTF(5),     reg_flag, 'h000f, 'h000f);
+      tb_test_1reg_opr(I_TESTF(6),     reg_flag, 'h000f, 'h000f);
+
+      tb_end();
+   endtask // tb_test_1reg_oprs
+
    task tb_test_operation(ins_t ins, reg_t flags, dst, a, string opr, reg_t b, bit z, c, o, s);
       bus_addr_t addr;
       int saved_assertion_failures;
@@ -383,6 +493,7 @@ module main();
       tb_test_LD_r_nnnn();
       tb_test_move();
       tb_test_stack();
+      tb_test_1reg_oprs();
       tb_test_oprations();
       tb_finish();
    end
