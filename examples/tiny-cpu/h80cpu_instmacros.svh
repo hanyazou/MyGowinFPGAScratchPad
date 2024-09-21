@@ -179,12 +179,27 @@ endfunction
 //
 //  three register operations
 //
-//  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
 function [15:0] I_ADD(reg_num_t dst, reg_num_t ra, reg_num_t rb);
    return { 4'h8, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
-
-//  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
 function [15:0] I_SUB(reg_num_t dst, reg_num_t ra, reg_num_t rb);
    return { 4'h9, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_ADC(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'ha, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_SBC(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'hb, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_AND(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'hc, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_OR (reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'hd, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_XOR(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'he, dst[3:0], ra[3:0], rb[3:0] };
+endfunction
+function [15:0] I_CP (reg_num_t dst, reg_num_t ra, reg_num_t rb);
+   return { 4'hf, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
