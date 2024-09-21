@@ -9,12 +9,15 @@ typedef bit [0:0] bus_num_t;
 localparam bus_numbuses = 2;
 
 localparam reg_flag = 16;
-localparam reg_flag_zero = 0;
+localparam     reg_flag_zero            = 0;  // equal zero
+localparam     reg_flag_carry           = 1;  // carry / borrow
+localparam     reg_flag_parity          = 2;  // 1: even / 0: odd
+localparam     reg_flag_overflow        = 2;  // overflow flag and parity flag share the same field
+localparam     reg_flag_sign            = 3;  // 1: negitive / 0: positive
+localparam     reg_flag_halt            = 8;  // CPU is halted
 localparam reg_pc = 17;
 localparam reg_sp = 18;
 localparam reg_bp = 19;
-localparam reg_stat = 20;
-localparam reg_stat_halt = 0;
 localparam reg_numregs = 24;
 
 localparam bus_cmd_write =   3'b000;

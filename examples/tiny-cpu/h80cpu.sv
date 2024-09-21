@@ -92,14 +92,13 @@ module h80cpu(
    endtask
 
    task set_halt(bit halt_);
-      regs[reg_stat][reg_stat_halt] = halt_;
+      regs[reg_flag][reg_flag_halt] = halt_;
    endtask
 
    always @(negedge clk) begin
       if (reset) begin
          regs[reg_pc] <= 'h0000;
          regs[reg_flag] <= 'h0000;
-         regs[reg_stat] <= 'h0000;
          bus_run[BUS_IO] <= 0;
          state <= S_FETCH_EXEC;
 
@@ -108,7 +107,7 @@ module h80cpu(
          bus_cmd <= bus_cmd_read_w;
          bus_run[BUS_MEM] <= 1;
       end else
-      if (regs[reg_stat][reg_stat_halt]) begin
+      if (regs[reg_flag][reg_flag_halt]) begin
          // halted with no execution
       end else
       if (bus_busy) begin
@@ -123,7 +122,7 @@ module h80cpu(
             // no operation
          end
          16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
-            regs[reg_stat][reg_stat_halt] <= 1;
+            regs[reg_flag][reg_flag_halt] <= 1;
          end
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
             bus_rd_reg <= reg_pc;

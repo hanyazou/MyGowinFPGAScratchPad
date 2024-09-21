@@ -34,7 +34,7 @@
       reset = 1;
       cpu_run_clk(5);
       reset = 0;
-      for (clk = 0; !regs[reg_stat][reg_stat_halt] && (max_clks < 0 || clk < max_clks); clk++)
+      for (clk = 0; !regs[reg_flag][reg_flag_halt] && (max_clks < 0 || clk < max_clks); clk++)
         cpu_run_clk(1);
    endtask
 
@@ -43,7 +43,7 @@
       bus_data_t data;
       mem_read(regs[reg_pc], data);  // read next instruction again before release HALT
       cpu0.set_halt(0);
-      for (clk = 0; !regs[reg_stat][reg_stat_halt] && (max_clks < 0 || clk < max_clks); clk++)
+      for (clk = 0; !regs[reg_flag][reg_flag_halt] && (max_clks < 0 || clk < max_clks); clk++)
         cpu_run_clk(1);
    endtask
 
