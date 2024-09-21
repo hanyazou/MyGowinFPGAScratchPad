@@ -495,6 +495,145 @@ module main();
 
    endtask // tb_test_oprations
 
+   task tb_test_jump(ins_t jump_flag_ins, jump_ins, bus_addr_t jump_addr, jump_result = -1,
+                     ins_t ret_flag_ins = I_NOP(), ret_ins = I_NOP(), bit ret = 1);
+      bus_addr_t addr, return_addr, not_return_addr;
+      string ins_name;
+      int saved_assertion_failures;
+
+      casez (jump_ins)
+      'h01cz: ins_name = "CALL";
+      'h01dz: ins_name = " RST";
+      'h01ez: ins_name = "  JP";
+      'h01fz: ins_name = "  JR";
+      endcase
+
+      $display("test_jump: %s %h", ins_name, jump_addr);
+      
+      cpu_init();
+
+      addr = 'h0000;                          // start address (reset address)
+      mem_write(addr, I_LD_RW_I(0));          // set stack pointer
+      addr += 2;
+      mem_write(addr, 'h0000);
+      addr += 2;
+      mem_write(addr, I_LD_R_R(reg_sp, 0));
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(0));          // LD r0, 8000h + 8h
+      addr += 2;
+      mem_write(addr, 'h8000 - 8);
+      addr += 2;
+      mem_write(addr, I_JP_R(0));             // jump to 8000h + 8h
+      addr += 2;
+
+      addr = 'h8000 - 8;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_run();
+
+      if (jump_result != -1) begin
+         bus_addr_t addr;
+         addr = jump_result;
+         mem_write(addr, I_HALT());              // HALT
+         addr += 2;
+         mem_write(addr, ret_flag_ins);          // set / clear flag
+         addr += 2;
+         mem_write(addr, ret_ins);               // RETx
+         addr += 2;
+         mem_write(addr, I_HALT());              // HALT
+         addr += 2;
+         not_return_addr = addr;
+      end
+
+      mem_write(addr, I_LD_RW_I(jump_ins[3:0])); // load jump addr
+      addr += 2;
+      mem_write(addr, jump_addr);
+      addr += 2;
+      mem_write(addr, jump_flag_ins);         // set / clear flag
+      addr += 2;
+      mem_write(addr, jump_ins);              // jump
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+      return_addr = addr;
+
+      cpu_cont();
+      saved_assertion_failures = tb_assertion_failures;
+      if (jump_result != bus_addr_t'(-1))
+         `tb_assert(regs[reg_pc] == jump_result + bus_addr_t'(2));
+      else
+         `tb_assert(regs[reg_pc] == return_addr);
+      if (saved_assertion_failures != tb_assertion_failures)
+         reg_dump(0, reg_numregs - 1);
+
+      if (ret_ins == I_NOP())
+        return;
+
+      cpu_cont();
+      saved_assertion_failures = tb_assertion_failures;
+      if (ret)
+         `tb_assert(regs[reg_pc] === return_addr);
+      else
+         `tb_assert(regs[reg_pc] === not_return_addr);
+      if (saved_assertion_failures != tb_assertion_failures)
+         reg_dump(0, reg_numregs - 1);
+
+   endtask // tb_test_jump
+
+   task tb_test_jumps();
+      tb_begin("test_jumps");
+      cpu_init();
+      mem_fill('h0000, I_HALT(), 'h10000);
+
+      //           flag    	jump		address	result  ret flag     ret ins    0=not ret
+      // CALL (R)
+      tb_test_jump(I_NOP(),     I_CALL_R(0),    'h3000, 'h3000);
+      tb_test_jump(I_NOP(),     I_CALL_R(0),    'h3000, 'h3000, I_NOP(),     I_RET());
+      tb_test_jump(I_CLRF(0),   I_CALL_Z(0),    'h3000);
+      tb_test_jump(I_SETF(0),   I_CALL_Z(0),    'h3000, 'h3000);
+      tb_test_jump(I_NOP(),     I_CALL_R(0),    'h3000, 'h3000, I_CLRF(0),   I_RET_Z(), 0);
+      tb_test_jump(I_NOP(),     I_CALL_R(0),    'h3000, 'h3000, I_SETF(0),   I_RET_Z(), 1);
+
+      // RST n
+      tb_test_jump(I_NOP(),     I_RST_N('h00),  'h0000, 'h0000, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h08),  'h0008, 'h0008, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h10),  'h0010, 'h0010, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h18),  'h0018, 'h0018, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h20),  'h0020, 'h0020, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h28),  'h0028, 'h0028, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h30),  'h0030, 'h0030, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h38),  'h0038, 'h0038, I_NOP(),     I_RET());
+      tb_test_jump(I_NOP(),     I_RST_N('h78),  'h0078, 'h0078, I_NOP(),     I_RET());
+
+      // JP (R)
+      tb_test_jump(I_NOP(),     I_JP_R(0),      'h2000, 'h2000);
+      tb_test_jump(I_NOP(),     I_JP_R(0),      'ha000, 'ha000);
+
+      // JR (R)
+      tb_test_jump(I_NOP(),     I_JR_R(0),      'h1000, 'h9000);
+      tb_test_jump(I_NOP(),     I_JR_R(0),      'hf000, 'h7000);
+
+      // JP cc, (R)
+      tb_test_jump(I_CLRF(0),   I_JP_Z(0),      'h2000);
+      tb_test_jump(I_SETF(0),   I_JP_Z(0),      'h2000, 'h2000);
+      tb_test_jump(I_CLRF(0),   I_JP_Z(0),      'ha000);
+      tb_test_jump(I_SETF(0),   I_JP_Z(0),      'ha000, 'ha000);
+
+      // JR cc, (R)
+      tb_test_jump(I_CLRF(0),   I_JR_Z(0),      'h1000);
+      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'h1000, 'h9000);
+      tb_test_jump(I_CLRF(0),   I_JR_Z(0),      'hf000);
+      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'hf000, 'h7000);
+
+      tb_test_jump(I_SETF(0),   I_JR_NZ(0),     'h1000);
+      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'h1000, 'h9000);
+      tb_test_jump(I_SETF(0),   I_JR_NZ(0),     'hf000);
+      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'hf000, 'h7000);
+
+      tb_end();
+   endtask // tb_test_jumps
+
    initial begin
       tb_init();
       tb_test00();
@@ -503,6 +642,7 @@ module main();
       tb_test_stack();
       tb_test_1reg_oprs();
       tb_test_oprations();
+      tb_test_jumps();
       tb_finish();
    end
 
