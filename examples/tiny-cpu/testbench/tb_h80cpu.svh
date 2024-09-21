@@ -67,6 +67,14 @@
       end
    endtask
 
+   task mem_fill(int addr, bus_data_t data, int len);
+      integer addr_end;
+
+      for (addr_end = addr + len; addr < addr_end; addr++) begin
+         mem_write(addr, data);
+      end
+   endtask
+
    task mem_dump(int addr, int len);
       integer i;
       integer addr_end;

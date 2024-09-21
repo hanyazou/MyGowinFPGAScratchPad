@@ -26,7 +26,7 @@ function ins_t I_CLRF(flag_num_t f);    return { 4'h0, 8'b0001_1010, f[3:0] }; e
 function ins_t I_TESTF(flag_num_t f);   return { 4'h0, 8'b0001_1011, f[3:0] }; endfunction
 
 function ins_t I_CALL_R(reg_num_t r);   return { 4'h0, 8'b0001_1100, r[3:0] }; endfunction
-function ins_t I_RST_F(bus_addr_t n);   return { 4'h0, 8'b0001_1101, 4'(n/8) }; endfunction
+function ins_t I_RST_N(bus_addr_t n);   return { 4'h0, 8'b0001_1101, 4'(n/8) }; endfunction
 function ins_t I_JP_R(reg_num_t r);     return { 4'h0, 8'b0001_1110, r[3:0] }; endfunction
 function ins_t I_JR_R(reg_num_t r);     return { 4'h0, 8'b0001_1111, r[3:0] }; endfunction
 
@@ -53,33 +53,41 @@ endfunction
 function [15:0] I_JP_N_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0011_00, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JP_NZ(reg_num_t r);
-   return I_JP_N_(reg_flag_zero, r);
-endfunction
+function [15:0] I_JP_NZ(reg_num_t r); return I_JP_N_(reg_flag_zero, r);         endfunction
+function [15:0] I_JP_NC(reg_num_t r); return I_JP_N_(reg_flag_carry, r);        endfunction
+function [15:0] I_JP_NV(reg_num_t r); return I_JP_N_(reg_flag_overflow, r);     endfunction
+function [15:0] I_JP_NP(reg_num_t r); return I_JP_N_(reg_flag_parity, r);       endfunction
+function [15:0] I_JP_NS(reg_num_t r); return I_JP_N_(reg_flag_sign, r);         endfunction
 
 //  0 0011_01ff_rrrr JP f, (R) (jump to R if F is false)
 function [15:0] I_JP_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0011_01, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JP_Z(reg_num_t r);
-   return I_JP_(reg_flag_zero, r);
-endfunction
+function [15:0] I_JP_Z (reg_num_t r); return I_JP_(reg_flag_zero, r);           endfunction
+function [15:0] I_JP_C (reg_num_t r); return I_JP_(reg_flag_carry, r);          endfunction
+function [15:0] I_JP_V (reg_num_t r); return I_JP_(reg_flag_overflow, r);       endfunction
+function [15:0] I_JP_P (reg_num_t r); return I_JP_(reg_flag_parity, r);         endfunction
+function [15:0] I_JP_S (reg_num_t r); return I_JP_(reg_flag_sign, r);           endfunction
 
 //  0 0011_10ff_rrrr JRN f, (R) (jump to R if F is false)
 function [15:0] I_JR_N_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0011_10, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JR_NZ(reg_num_t r);
-   return I_JR_N_(reg_flag_zero, r);
-endfunction
+function [15:0] I_JR_NZ(reg_num_t r); return I_JR_N_(reg_flag_zero, r);         endfunction
+function [15:0] I_JR_NC(reg_num_t r); return I_JR_N_(reg_flag_carry, r);        endfunction
+function [15:0] I_JR_NV(reg_num_t r); return I_JR_N_(reg_flag_overflow, r);     endfunction
+function [15:0] I_JR_NP(reg_num_t r); return I_JR_N_(reg_flag_parity, r);       endfunction
+function [15:0] I_JR_NS(reg_num_t r); return I_JR_N_(reg_flag_sign, r);         endfunction
 
 //  0 0011_11ff_rrrr JR f, (R) (jump to R if F is false)
 function [15:0] I_JR_(flag_num_t f, reg_num_t r);
    return { 4'h0, 6'b0011_11, f[1:0], r[3:0] };
 endfunction
-function [15:0] I_JR_Z(reg_num_t r);
-   return I_JR_(reg_flag_zero, r);
-endfunction
+function [15:0] I_JR_Z (reg_num_t r); return I_JR_(reg_flag_zero, r);           endfunction
+function [15:0] I_JR_C (reg_num_t r); return I_JR_(reg_flag_carry, r);          endfunction
+function [15:0] I_JR_V (reg_num_t r); return I_JR_(reg_flag_overflow, r);       endfunction
+function [15:0] I_JR_P (reg_num_t r); return I_JR_(reg_flag_parity, r);         endfunction
+function [15:0] I_JR_S (reg_num_t r); return I_JR_(reg_flag_sign, r);           endfunction
 
 function ins_t I_SRA_R_I(reg_num_t a, n); return { 4'h0, 4'b0100, a[7:4], n[3:0] }; endfunction
 function ins_t I_SRL_R_I(reg_num_t a, n); return { 4'h0, 4'b0101, a[7:4], n[3:0] }; endfunction

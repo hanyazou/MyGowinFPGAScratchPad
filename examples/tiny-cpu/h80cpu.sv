@@ -131,13 +131,17 @@ module h80cpu(
          end
          // 0000_0000_0000_0011 to 0111_1110 reserved
          16'b0000_0000_0111_1111: begin  //  0 0000_0111_1111 INV 無効な命令
-            // TODO
+            // TODO (exception)
          end
-         16'b0000_0000_1000_00zz: begin  //  0 0000_1000_00ff RET_N f
-            // TODO
-         end
+         16'b0000_0000_1000_00zz,        //  0 0000_1000_00ff RET_N f
          16'b0000_0000_1000_01zz: begin  //  0 0000_1000_01ff RET f
-            // TODO
+            if ((ins[2] == 1'b0 && !regs[reg_flag][ins[1:0]]) ||
+                (ins[2] == 1'b1 && regs[reg_flag][ins[1:0]])) begin
+               bus_rd_reg <= reg_pc;
+               bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
+               regs[reg_sp] <= regs[reg_sp] + 2;
+               do_memory_access = 1;
+            end
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
             bus_wr_data <= regs[ins[3:0]];
@@ -153,7 +157,7 @@ module h80cpu(
          end
          16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
                                          //  (copy R[15] for sign extension)
-            // TODO
+            // TODO (32bit)
          end
          16'b0000_0001_0011_zzzz: begin  //  0 0001_0011_rrrr EXTN R.b
                                          //  (copy R[7] for sign extension)
@@ -168,7 +172,7 @@ module h80cpu(
             regs[ins[3:0]] <= ~regs[ins[3:0]] + 1;
          end
          16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_rrrr LD R, nnnnnnnn
-            // TODO
+            // TODO (32bit)
          end
          16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_rrrr LD R, nnnn
             bus_rd_reg <= ins[3:0];
@@ -196,19 +200,28 @@ module h80cpu(
             do_memory_access = 1;
          end
          16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_nnnn RST n (call address n * 8)
-            // TODO
+            bus_wr_data <= regs[reg_pc] + 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
+            regs[reg_sp] <= regs[reg_sp] - 2;
+            next_ins_addr = bus_addr_t'(ins[3:0] * 8);
+            do_memory_access = 1;
          end
          16'b0000_0001_1110_zzzz: begin  //  0 0001_1110_rrrr JP R
-            // TODO
+            `register(reg_pc, regs[ins[3:0]]);
          end
          16'b0000_0001_1111_zzzz: begin  //  0 0001_1111_rrrr JR R
-            // TODO
+            `register(reg_pc, regs[reg_pc] + regs[ins[3:0]]);
          end
-         16'b0000_0010_00zz_zzzz: begin  //  0 0010_00ff_rrrr CALLN f, (R) (call R if f is false)
-            // TODO
-         end
+         16'b0000_0010_00zz_zzzz,        //  0 0010_00ff_rrrr CALLN f, (R) (call R if f is false)
          16'b0000_0010_01zz_zzzz: begin  //  0 0010_01ff_rrrr CALL  f, (R) (call R if f is true)
-            // TODO
+            if ((ins[6] == 1'b0 && !regs[reg_flag][ins[5:4]]) ||
+                (ins[6] == 1'b1 && regs[reg_flag][ins[5:4]])) begin
+               bus_wr_data <= regs[reg_pc] + 2;
+               bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
+               regs[reg_sp] <= regs[reg_sp] - 2;
+               next_ins_addr = regs[ins[3:0]];
+               do_memory_access = 1;
+            end
          end
          //  0 0010_10ff_rrrr reserved 空き
          //  0 0010_11ff_rrrr reserved 空き
@@ -221,14 +234,12 @@ module h80cpu(
                `register(reg_pc, regs[ins[3:0]]);
          end
          16'b0000_0011_10zz_zzzz: begin  //  0 0011_10ff_rrrr JRN f, (R) (jump to R if F is false)
-            // TODO
             if (!regs[reg_flag][ins[5:4]])
-               `register(reg_pc, reg_pc + regs[ins[3:0]]);
+               `register(reg_pc, regs[reg_pc] + regs[ins[3:0]]);
          end
          16'b0000_0011_11zz_zzzz: begin  //  0 0011_11ff_rrrr JR  f, (R) (jump to R if F is true)
-            // TODO
             if (regs[reg_flag][ins[5:4]])
-               `register(reg_pc, reg_pc + regs[ins[3:0]]);
+               `register(reg_pc, regs[reg_pc] + regs[ins[3:0]]);
          end
          16'b0000_0100_zzzz_zzzz: begin  //  0 0100_rrrr_nnnn SRA R, n (shift right arithmetic)
             // TODO
