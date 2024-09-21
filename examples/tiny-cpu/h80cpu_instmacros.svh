@@ -89,15 +89,15 @@ function [15:0] I_JR_V (reg_num_t r); return I_JR_(reg_flag_overflow, r);       
 function [15:0] I_JR_P (reg_num_t r); return I_JR_(reg_flag_parity, r);         endfunction
 function [15:0] I_JR_S (reg_num_t r); return I_JR_(reg_flag_sign, r);           endfunction
 
-function ins_t I_SRA_R_I(reg_num_t a, n); return { 4'h0, 4'b0100, a[7:4], n[3:0] }; endfunction
-function ins_t I_SRL_R_I(reg_num_t a, n); return { 4'h0, 4'b0101, a[7:4], n[3:0] }; endfunction
-function ins_t I_SL_R_I (reg_num_t a, n); return { 4'h0, 4'b0110, a[7:4], n[3:0] }; endfunction
-function ins_t I_RLC_R_I(reg_num_t a, n); return { 4'h0, 4'b0111, a[7:4], n[3:0] }; endfunction
-function ins_t I_ADD_R_I(reg_num_t a, n); return { 4'h0, 4'b1000, a[7:4], n[3:0] }; endfunction
-function ins_t I_SUB_R_I(reg_num_t a, n); return { 4'h0, 4'b1001, a[7:4], n[3:0] }; endfunction
+function ins_t I_SRA_R_I(reg_num_t a, n); return { 4'h0, 4'b0100, a[3:0], n[3:0] }; endfunction
+function ins_t I_SRL_R_I(reg_num_t a, n); return { 4'h0, 4'b0101, a[3:0], n[3:0] }; endfunction
+function ins_t I_SL_R_I (reg_num_t a, n); return { 4'h0, 4'b0110, a[3:0], n[3:0] }; endfunction
+function ins_t I_RLC_R_I(reg_num_t a, n); return { 4'h0, 4'b0111, a[3:0], n[3:0] }; endfunction
+function ins_t I_ADD_R_I(reg_num_t a, n); return { 4'h0, 4'b1000, a[3:0], n[3:0] }; endfunction
+function ins_t I_SUB_R_I(reg_num_t a, n); return { 4'h0, 4'b1001, a[3:0], n[3:0] }; endfunction
 
 //  0 1010_aaaa_bbbb DJNZ A, (B) (decrement A and jump to B if A is not zero)
-function ins_t I_DJNZ(reg_num_t a, b);  return { 4'h0, 4'b1010, a[7:4], b[3:0] }; endfunction
+function ins_t I_DJNZ(reg_num_t a, b);  return { 4'h0, 4'b1010, a[3:0], b[3:0] }; endfunction
 
 //  0 110a_aaaa_bbbb EX A, B
 function [15:0] I_EX_R_R(reg_num_t a, b);
