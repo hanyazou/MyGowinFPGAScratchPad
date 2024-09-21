@@ -157,13 +157,15 @@ module h80cpu(
          end
          16'b0000_0001_0011_zzzz: begin  //  0 0001_0011_rrrr EXTN R.b
                                          //  (copy R[7] for sign extension)
-            // TODO
+            reg_num_t r;
+            r = ins[3:0];
+            regs[r] <= regs[r][7] == 0 ? (regs[r] & 'h00ff) : (regs[r] | 'hff00);
          end
          16'b0000_0001_0100_zzzz: begin  //  0 0001_0100_rrrr CPL R (invert R, one's complement)
-            // TODO
+            regs[ins[3:0]] <= ~regs[ins[3:0]];
          end
          16'b0000_0001_0101_zzzz: begin  //  0 0001_0101_rrrr NEG R (negate R, two's complement)
-            // TODO
+            regs[ins[3:0]] <= ~regs[ins[3:0]] + 1;
          end
          16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_rrrr LD R, nnnnnnnn
             // TODO
@@ -175,16 +177,16 @@ module h80cpu(
             do_memory_access = 1;
          end
          16'b0000_0001_1000_zzzz: begin  //  0 0001_1000_ffff INVF (invert flag F)
-            // TODO
+            regs[reg_flag] <= regs[reg_flag] ^ (16'b1 << ins[3:0]);
          end
          16'b0000_0001_1001_zzzz: begin  //  0 0001_1001_ffff SETF (set flag F)
-            // TODO
+            regs[reg_flag] <= regs[reg_flag] | (16'b1 << ins[3:0]);
          end
          16'b0000_0001_1010_zzzz: begin  //  0 0001_1010_ffff CLRF (clear flag F)
-            // TODO
+            regs[reg_flag] <= regs[reg_flag]& ~(16'b1 << ins[3:0]);
          end
-         16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_ffff TESTF (copy flag F to flag Z)
-            // TODO
+         16'b0000_0001_1011_zzzz: begin  //  0 0001_1011_ffff TESTF (test flag F is zero)
+            regs[reg_flag][reg_flag_zero] <= regs[reg_flag][ins[3:0]] ? 1'b0: 1'b1;
          end
          16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
             bus_wr_data <= regs[reg_pc] + 2;
