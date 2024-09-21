@@ -262,12 +262,136 @@ module main();
 
    endtask // tb_test_stack
 
+   task tb_test_operation(ins_t ins, reg_t flags, dst, a, string opr, reg_t b, bit z, c, o, s);
+      bus_addr_t addr;
+      int saved_assertion_failures;
+      string opr_name;
+
+      saved_assertion_failures = tb_assertion_failures;
+
+      casez (ins)
+      'h8zzz: opr_name = "ADD";
+      'h9zzz: opr_name = "SUB";
+      'hazzz: opr_name = "ADC";
+      'hbzzz: opr_name = "SBC";
+      'hczzz: opr_name = "AND";
+      'hdzzz: opr_name = " OR";
+      'hezzz: opr_name = "XOR";
+      'hfzzz: opr_name = " CP";
+      endcase
+      
+      $display("tb_test_operation: %s %d:%h = %d:%h %s %d:%h %s%s%s%s",
+               opr_name, ins[11:8], dst, ins[7:4], a, opr, ins[3:0], b,
+               z ? "Z" : "_",  c ? "C" : "_", o ? "O" : "_",  s ? "S" : "_" );
+
+      cpu_init();
+      addr = 'h0000;
+      mem_write(addr, I_LD_RW_I(0));          // LD r0, flags
+      addr += 2;
+      mem_write(addr, flags);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(ins[11:8]));  // LD dst, beefh
+      addr += 2;
+      mem_write(addr, 'hbeef);
+      addr += 2;
+      mem_write(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(ins[7:4]));   // LD a
+      addr += 2;
+      mem_write(addr, a);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(ins[3:0]));   // LD b
+      addr += 2;
+      mem_write(addr, b);
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[ins[7:4]] === a);
+      `tb_assert(regs[ins[3:0]] === b);
+
+      mem_write(addr, ins);                   // three register operation
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_cont();
+      `tb_assert(regs[reg_pc] === addr);
+      if (ins[15:12] == 'hf) begin
+         `tb_assert(regs[ins[11:8]] === 'hbeef);
+      end else begin
+         `tb_assert(regs[ins[11:8]] === dst);
+      end
+      `tb_assert(z == regs[reg_flag][reg_flag_zero]);   // equal zero
+      `tb_assert(c == regs[reg_flag][reg_flag_carry]);  // carry / borrow
+      `tb_assert(o == regs[reg_flag][reg_flag_parity]); // parity even / overflow
+      `tb_assert(s == regs[reg_flag][reg_flag_sign]);   // negitive / positive
+
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, reg_numregs - 1);
+      end
+      
+   endtask // tb_tgest_operation
+   
+   task tb_test_oprations();
+      tb_begin("test_operations");
+      //                instruction     flags   result  a       opr  b       z  c  o  s
+      tb_test_operation(I_ADD(0, 8, 9), 'hd000, 'hd000, 'hc000, "+", 'h1000, 0, 0, 0, 1);
+      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h1000, 'hc000, "+", 'h5000, 0, 1, 0, 0);
+      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h0000, 'hc000, "+", 'h4000, 1, 1, 0, 0);
+      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h9000, 'h5000, "+", 'h4000, 0, 0, 1, 1);
+
+      tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
+      tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
+      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
+      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
+      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
+
+      tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'h2234, 'h1234, "+", 'h1000, 0, 0, 0, 0);
+      tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h2235, 'h1234, "+", 'h1000, 0, 0, 0, 0);
+      tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "+", 'h8000, 0, 0, 0, 1);
+      tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h0000, 'h7fff, "+", 'h8000, 1, 1, 0, 0);
+
+      tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'h0234, 'h1234, "-", 'h1000, 0, 0, 0, 0);
+      tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'h0233, 'h1234, "-", 'h1000, 0, 0, 0, 0);
+      tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "-", 'h8000, 0, 1, 1, 1);
+      tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'hffff, 'h7fff, "-", 'h7fff, 0, 1, 0, 1);
+
+      tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
+      tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
+      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
+      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
+      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
+
+      //                instruction     flags   result  a       opr  b       z  c  p  s
+      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0000, 'ha5a5, "&", 'h5a5a, 1, 0, 1, 0);
+      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha500, 'ha5a5, "&", 'hff00, 0, 0, 1, 1);
+      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0808, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 0);
+      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha800, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
+
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffff, 'ha5a5, "&", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa5, 'ha5a5, "&", 'hff00, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafa, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa8, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
+
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffff, 'ha5a5, "&", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h5aa5, 'ha5a5, "&", 'hff00, 0, 0, 1, 0);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h57a8, 'ha8a8, "&", 'hff00, 0, 0, 1, 0);
+
+      tb_end();
+
+   endtask // tb_test_oprations
+
    initial begin
       tb_init();
       tb_test00();
       tb_test_LD_r_nnnn();
       tb_test_move();
       tb_test_stack();
+      tb_test_oprations();
       tb_finish();
    end
 

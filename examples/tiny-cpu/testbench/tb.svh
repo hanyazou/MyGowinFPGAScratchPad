@@ -29,11 +29,13 @@
    endtask
          
    task tb_finish();
+      $display("");
       if (tb_errors === 0) begin
          $display("testbenchi: %1d test%0s succeeded", tb_count, tb_count !== 1 ? "s" : "");
       end else begin
          $display("testbenchi: %1d/%1d test%0s FAILED", tb_errors, tb_count,
             tb_errors !== 1 ? "s" : "");
       end
+      $display("");
       $finish;
    endtask

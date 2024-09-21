@@ -36,7 +36,6 @@ module h80cpu(
    assign ins_ = ins;
    int next_ins_addr;
    int do_memory_access;
-   int tmp;
 
    /*
     * reset
@@ -292,23 +291,67 @@ module h80cpu(
          //
          //  three register operations
          //
-         'h8zzz: begin  //  8 dddd_aaaa_bbbb  reg[D] = reg[A] + reg[B]
-            tmp = regs[ins[7:4]] + regs[ins[3:0]];
-            `register(ins[11:8], tmp);
-            regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
-         end
-         'h9zzz: begin  //  9 001d_ddaa_abbb  reg[D] = reg[A] - reg[B]
-            tmp = regs[ins[7:4]] - regs[ins[3:0]];
-            `register(ins[11:8], tmp);
-            regs[reg_flag][reg_flag_zero] <= (tmp[15:0] == 0) ? 1 : 0;
-         end
+         //  1zzzz dddd_aaaa_bbbb  reg[D] = reg[A] op reg[B]
+         'b1zzz_zzzz_zzzz_zzzz: begin
+            reg_num_t dst;
+            bit [16:0] a;
+            bit [16:0] b;
+            bit C;
+            bit [16:0] res;
+
+            dst = ins[11:8];
+            a = { 1'b0, regs[ins[7:4]] };
+            b = { 1'b0, regs[ins[3:0]] };
+            C = regs[reg_flag][reg_flag_carry];
+
+            casez (ins)
+            'h8zzz: begin res = a + b;     end  // ADD
+            'h9zzz: begin res = a - b;     end  // SUB
+            'hazzz: begin res = a + b + C; end  // ADC
+            'hbzzz: begin res = a - b - C; end  // SBC
+            'hczzz: begin res = a & b;     end  // AND
+            'hdzzz: begin res = a | b;     end  // OR 
+            'hezzz: begin res = a ^ b;     end  // XOR
+            'hfzzz: begin res = a - b;     end  // CP 
+            endcase // casez (ins)
+
+            if (ins[15:12] != 'hf) begin
+               `register(dst, res);
+            end
+
+            casez (ins)
+            'h8zzz,
+            'h9zzz,
+            'hazzz,
+            'hbzzz,
+            'hfzzz: begin  //  ADD, SUB, ADC, SBC and CP
+               regs[reg_flag][reg_flag_sign] <= res[15];
+               regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
+               if (ins[15:12] == 'h8 || ins[15:12] == 'ha)
+                 regs[reg_flag][reg_flag_overflow] <= (a[15] == b[15] && a[15] != res[15]) ? 1 : 0;
+               else
+                 regs[reg_flag][reg_flag_overflow] <= (a[15] != b[15] && a[15] != res[15]) ? 1 : 0;
+               regs[reg_flag][reg_flag_carry] <= res[16];
+            end
+            'hczzz,
+            'hdzzz,
+            'hezzz: begin  //  AND, OR and XOR
+               regs[reg_flag][reg_flag_sign] <= res[15];
+               regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
+               regs[reg_flag][reg_flag_overflow] <= ~^res[15:0];
+               regs[reg_flag][reg_flag_carry] <= 0;
+            end
+            endcase // casez (ins)
+         end // case: 'b1zzz_zzzz_zzzz_zzzz
          endcase // casez (ins)
+
          regs[reg_pc] <= next_ins_addr[15:0];
          if (do_memory_access)
             state <= S_BUS_RW;
          else
             start_instruction_fetch(next_ins_addr);
-      end
+
+      end // case: S_FETCH_EXEC
       S_BUS_RW: begin  // memory access completion
          if (bus_cmd == bus_cmd_read_w)
             regs[bus_rd_reg] <= bus_rd_data[bus_num];
