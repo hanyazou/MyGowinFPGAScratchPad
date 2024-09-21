@@ -270,9 +270,15 @@ module main();
       16'b0000_0001_1001_zzzz: opr_name = " SETF";
       16'b0000_0001_1010_zzzz: opr_name = " CLRF";
       16'b0000_0001_1011_zzzz: opr_name = "TESTF";
+      16'b0000_0100_zzzz_zzzz: opr_name = "  SRA";
+      16'b0000_0101_zzzz_zzzz: opr_name = "  SRL";
+      16'b0000_0110_zzzz_zzzz: opr_name = "   SL";
+      16'b0000_0111_zzzz_zzzz: opr_name = "  RLC";
+      16'b0000_1000_zzzz_zzzz: opr_name = " ADDI";
+      16'b0000_1001_zzzz_zzzz: opr_name = " SUBI";
       endcase // casez (ins)
 
-      $display("tb_test_1reg_opr: %s(%1d): %h -> %h", opr_name, ins[3:0], prev, result);
+      $display("tb_test_1reg_opr: %s(%d): %h -> %h", opr_name, ins[3:0], prev, result);
 
       cpu_init();
       addr = 'h0000;
@@ -360,6 +366,27 @@ module main();
       tb_test_1reg_opr(I_TESTF(3),     reg_flag, 'h00f0, 'h00f1);
       tb_test_1reg_opr(I_TESTF(5),     reg_flag, 'h000f, 'h000f);
       tb_test_1reg_opr(I_TESTF(6),     reg_flag, 'h000f, 'h000f);
+
+      tb_test_1reg_opr(I_ADD_R_I(0, 1),       0, 'h0000, 'h0001);
+      tb_test_1reg_opr(I_ADD_R_I(0, 15),      0, 'h0000, 'h000f);
+      tb_test_1reg_opr(I_SUB_R_I(0, 1),       0, 'h0100, 'h00ff);
+      tb_test_1reg_opr(I_SUB_R_I(0, 15),      0, 'h0100, 'h00f1);
+
+      tb_test_1reg_opr(I_SRA_R_I(0, 1),       0, 'h8001, 'hc000);
+      tb_test_1reg_opr(I_SRA_R_I(0, 8),       0, 'h8001, 'hff80);
+      tb_test_1reg_opr(I_SRA_R_I(0, 15),      0, 'h8001, 'hffff);
+
+      tb_test_1reg_opr(I_SRL_R_I(0, 1),       0, 'h8001, 'h4000);
+      tb_test_1reg_opr(I_SRL_R_I(0, 8),       0, 'h8001, 'h0080);
+      tb_test_1reg_opr(I_SRL_R_I(0, 15),      0, 'h8001, 'h0001);
+
+      tb_test_1reg_opr(I_SL_R_I(0, 1),        0, 'h8001, 'h0002);
+      tb_test_1reg_opr(I_SL_R_I(0, 8),        0, 'h8001, 'h0100);
+      tb_test_1reg_opr(I_SL_R_I(0, 15),       0, 'h8001, 'h8000);
+
+      tb_test_1reg_opr(I_RLC_R_I(0, 1),       0, 'h8001, 'h0003);
+      tb_test_1reg_opr(I_RLC_R_I(0, 8),       0, 'h8001, 'h0180);
+      tb_test_1reg_opr(I_RLC_R_I(0, 15),      0, 'h8001, 'hc000);
 
       tb_end();
    endtask // tb_test_1reg_oprs

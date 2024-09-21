@@ -242,22 +242,22 @@ module h80cpu(
                `register(reg_pc, regs[reg_pc] + regs[ins[3:0]]);
          end
          16'b0000_0100_zzzz_zzzz: begin  //  0 0100_rrrr_nnnn SRA R, n (shift right arithmetic)
-            // TODO
+            `register(ins[7:4], signed'(regs[ins[7:4]]) >>>  ins[3:0]);
          end
          16'b0000_0101_zzzz_zzzz: begin  //  0 0101_rrrr_nnnn SRL R, n (shift right logical)
-            // TODO
+            `register(ins[7:4], regs[ins[7:4]] >> ins[3:0]);
          end
          16'b0000_0110_zzzz_zzzz: begin  //  0 0110_rrrr_nnnn SL  R, n (shift left)
-            // TODO
+            `register(ins[7:4], regs[ins[7:4]] << ins[3:0]);
          end
          16'b0000_0111_zzzz_zzzz: begin  //  0 0111_rrrr_nnnn RLC R, n (rotate left circular)
-            // TODO
+            `register(ins[7:4], (regs[ins[7:4]] << ins[3:0]) | (regs[ins[7:4]] >> (16-ins[3:0])));
          end
          16'b0000_1000_zzzz_zzzz: begin  //  0 1000_rrrr_nnnn ADD R, n
-            // TODO
+            `register(ins[7:4], regs[ins[7:4]] + ins[3:0]);
          end
          16'b0000_1001_zzzz_zzzz: begin  //  0 1001_rrrr_nnnn SUB R, n
-            // TODO
+            `register(ins[7:4], regs[ins[7:4]] - ins[3:0]);
          end
          16'b0000_1010_zzzz_zzzz: begin  //  0 1010_aaaa_bbbb DJNZ A, (B)
                                          //  (decrement A and jump to B if A is not zero)
