@@ -658,6 +658,67 @@ module main();
       tb_end();
    endtask // tb_test_jumps
 
+   task tb_test_hello();
+      bus_addr_t addr;
+
+      tb_begin("test_hello");
+
+      cpu_init();
+
+      addr = 'h1000;                          // message
+      mem_write(addr, { "e", "H" }); addr += 2;
+      mem_write(addr, { "l", "l" }); addr += 2;
+      mem_write(addr, { ",", "o" }); addr += 2;
+      mem_write(addr, { "w", " " }); addr += 2;
+      mem_write(addr, { "r", "o" }); addr += 2;
+      mem_write(addr, { "d", "l" }); addr += 2;
+      mem_write(addr, { 8'h0d, "!" }); addr += 2;
+      mem_write(addr, { 8'h00, 8'h0a }); addr += 2;
+
+      addr = 'h0000;                          // start address (reset address)
+      mem_write(addr, I_XOR(0, 0, 0));        // XOR r0, r0, r0
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(1));          // LD r1, message
+      addr += 2;
+      mem_write(addr, 'h1000);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(2));          // UART TX
+      addr += 2;
+      mem_write(addr, 'h0000);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(3));          // LD r3, 6
+      addr += 2;
+      mem_write(addr, 6);
+      addr += 2;
+      mem_write(addr, I_LD_RW_I(4));          // LD r4, -10
+      addr += 2;
+      mem_write(addr, -10);
+      addr += 2;
+
+      // LOOP:
+      mem_write(addr, I_LD_RB_M(0, 1));       // LD r0.b, (r1)
+      addr += 2;
+      mem_write(addr, I_ADD_R_I(1, 1));       // ADD r1, 1 
+      addr += 2;
+      mem_write(addr, I_ADD(8, 0, 0));        // ADD r8, r0, r0  r0 == 0 ?
+      addr += 2;
+      mem_write(addr, I_JR_Z(3));             // JR Z, (r3)
+      addr += 2;
+      mem_write(addr, I_OUTB(2, 0));          // OUTB (r2), r0.b
+      addr += 2;
+      mem_write(addr, I_JR_R(4));             // JR (r4)
+      addr += 2;
+      mem_write(addr, I_HALT());              // HALT
+      addr += 2;
+
+      cpu_run();
+      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs[0] === 'h0000);
+      `tb_assert(regs[1] === 'h1010);
+
+      tb_end();
+   endtask // tb_test_hello
+
    initial begin
       tb_init();
       tb_test00();
@@ -667,6 +728,7 @@ module main();
       tb_test_1reg_oprs();
       tb_test_oprations();
       tb_test_jumps();
+      tb_test_hello();
       tb_finish();
    end
 
