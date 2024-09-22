@@ -320,8 +320,8 @@ module h80cpu(
             casez (ins)
             'h8zzz: begin res = a + b;     end  // ADD
             'h9zzz: begin res = a - b;     end  // SUB
-            'hazzz: begin res = a + b + C; end  // ADC
-            'hbzzz: begin res = a - b - C; end  // SBC
+            'hazzz: begin res = a * b;     end  // MUL
+            'hbzzz: begin res = a / b;     end  // DIV
             'hczzz: begin res = a & b;     end  // AND
             'hdzzz: begin res = a | b;     end  // OR 
             'hezzz: begin res = a ^ b;     end  // XOR
@@ -335,9 +335,7 @@ module h80cpu(
             casez (ins)
             'h8zzz,
             'h9zzz,
-            'hazzz,
-            'hbzzz,
-            'hfzzz: begin  //  ADD, SUB, ADC, SBC and CP
+            'hfzzz: begin  //  ADD, SUB and CP
                regs[reg_flag][reg_flag_sign] <= res[15];
                regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
                if (ins[15:12] == 'h8 || ins[15:12] == 'ha)
@@ -345,6 +343,13 @@ module h80cpu(
                else
                  regs[reg_flag][reg_flag_overflow] <= (a[15] != b[15] && a[15] != res[15]) ? 1 : 0;
                regs[reg_flag][reg_flag_carry] <= res[16];
+            end
+            'hazzz,
+            'hbzzz: begin  //  MUL and DIV
+               regs[reg_flag][reg_flag_sign] <= res[15];
+               regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
+               regs[reg_flag][reg_flag_overflow] <= 0;
+               regs[reg_flag][reg_flag_carry] <= 0;
             end
             'hczzz,
             'hdzzz,
