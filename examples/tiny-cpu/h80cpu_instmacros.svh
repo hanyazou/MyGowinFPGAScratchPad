@@ -193,10 +193,10 @@ endfunction
 function [15:0] I_SUB(reg_num_t dst, reg_num_t ra, reg_num_t rb);
    return { 4'h9, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_ADC(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+function [15:0] I_MUL(reg_num_t dst, reg_num_t ra, reg_num_t rb);
    return { 4'ha, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
-function [15:0] I_SBC(reg_num_t dst, reg_num_t ra, reg_num_t rb);
+function [15:0] I_DIV(reg_num_t dst, reg_num_t ra, reg_num_t rb);
    return { 4'hb, dst[3:0], ra[3:0], rb[3:0] };
 endfunction
 function [15:0] I_AND(reg_num_t dst, reg_num_t ra, reg_num_t rb);
