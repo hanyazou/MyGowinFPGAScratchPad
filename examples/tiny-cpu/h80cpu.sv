@@ -254,9 +254,25 @@ module h80cpu(
             `register(ins[7:4], (regs[ins[7:4]] << ins[3:0]) | (regs[ins[7:4]] >> (16-ins[3:0])));
          end
          16'b0000_1000_zzzz_zzzz: begin  //  0 1000_rrrr_nnnn ADD R, n
+            bit [16:0] res;
+            bit [16:0] a;
+            a = { 1'b0, regs[ins[7:4]] };
+            res = a + ins[3:0];
+            regs[reg_flag][reg_flag_sign] <= res[15];
+            regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
+            regs[reg_flag][reg_flag_overflow] <= (a[15] == 1'b0 && res[15] == 1'b1) ? 1 : 0;
+            regs[reg_flag][reg_flag_carry] <= res[16];
             `register(ins[7:4], regs[ins[7:4]] + ins[3:0]);
          end
          16'b0000_1001_zzzz_zzzz: begin  //  0 1001_rrrr_nnnn SUB R, n
+            bit [16:0] res;
+            bit [16:0] a;
+            a = { 1'b0, regs[ins[7:4]] };
+            res = a - ins[3:0];
+            regs[reg_flag][reg_flag_sign] <= res[15];
+            regs[reg_flag][reg_flag_zero] <= (res[15:0] == 0) ? 1 : 0;
+            regs[reg_flag][reg_flag_overflow] <= (a[15] == 1'b1 && res[15] == 1'b0) ? 1 : 0;
+            regs[reg_flag][reg_flag_carry] <= res[16];
             `register(ins[7:4], regs[ins[7:4]] - ins[3:0]);
          end
          16'b0000_1010_zzzz_zzzz: begin  //  0 1010_aaaa_bbbb DJNZ A, (B)
