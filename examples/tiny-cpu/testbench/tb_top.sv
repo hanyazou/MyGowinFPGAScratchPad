@@ -638,6 +638,200 @@ module main();
       tb_end();
    endtask // tb_test_hello
 
+   task tb_test_mandelbrot();
+      localparam [7:0] FRACBITS = 9;
+      localparam [15:0] WIDTH = 78;
+      localparam [15:0] HEIGHT = 24;
+      localparam [15:0] FP0_0458 = 16'h0017;
+      localparam [15:0] FP0_0833 = 16'h002a;
+      localparam [15:0] FP4_0 = 16'h0800;
+      localparam [15:0] CA0 = 16'hfc7f;
+      localparam [15:0] CB0 = 16'hfe08;
+
+      localparam X = 6;
+      localparam Y = 7;
+      localparam I = 11;
+      localparam A = 12;
+      localparam B = 13;
+      localparam CA = 14;
+      localparam CB = 15;
+      localparam T = 3;
+
+      bus_addr_t addr;
+      bus_addr_t label_fp_mul;
+      bus_addr_t label_put_pixel;
+      bus_addr_t label_loop_y;
+      bus_addr_t label_loop_x;
+      bus_addr_t label_loop_i;
+      bus_addr_t label_exit_loop_i;
+
+      tb_begin("test_mandelbrot");
+
+      cpu_init();
+
+      addr = 'h1000;
+
+      // fp_mul(A, B)
+      label_fp_mul = addr;
+      `cpu_mem(addr, I_SRA_R_I(4, 4));       // r2 = (A >> 4)
+      `cpu_mem(addr, I_SRA_R_I(5, FRACBITS - 4));       // r5 = (A >> (FRACBITS - 4))
+      `cpu_mem(addr, I_MUL(2, 4, 5));        // r2 = (A * B) >> FRACBITS
+      `cpu_mem(addr, I_RET());               // return
+
+      // put_pixel(I)
+      label_put_pixel = addr;
+      `cpu_mem(addr, I_LD_RW_I(8));          // LD r8, 10
+      `cpu_mem(addr, 10);
+      `cpu_mem(addr, I_CP(4, 4, 8));         // r4(I) - r8(9)
+      `cpu_mem(addr, I_LD_RW_I(8));          // LD r8, 4
+      `cpu_mem(addr, 4);
+      `cpu_mem(addr, I_JR_C(8));             // JR r8(+4) if I < 10
+      `cpu_mem(addr, I_ADD_R_I(4, 7));       // r4(I) = r4(I) + 7
+      `cpu_mem(addr, I_LD_RW_I(8));          // LD r8, 48
+      `cpu_mem(addr, 48);
+      `cpu_mem(addr, I_ADD(4, 4, 8));        // r4(I) = r4(I) + 48
+      `cpu_mem(addr, I_LD_RW_I(8));          // LD r8, 'h0000
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_OUTB(8, 4));          // OUT r8('h0000), r4(I)
+      `cpu_mem(addr, I_RET());               // RET
+
+      //
+      // main routine
+      //
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 0000h
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, r0
+      `cpu_mem(addr, I_LD_RW_I(CA));         // CA = CA0
+      `cpu_mem(addr, CA0);
+      `cpu_mem(addr, I_LD_RW_I(CB));         // CB = CB0
+      `cpu_mem(addr, CB0);
+
+      `cpu_mem(addr, I_LD_RW_I(Y));         // Y = HEIGHT + 1
+      `cpu_mem(addr, HEIGHT);
+      `cpu_mem(addr, I_ADD_R_I(Y, 1));
+
+      label_loop_y = addr;
+
+      `cpu_mem(addr, I_LD_RW_I(CA));         // CA = CA0
+      `cpu_mem(addr, CA0);
+
+      `cpu_mem(addr, I_LD_RW_I(X));          // X = WIDTH + 1
+      `cpu_mem(addr, WIDTH);
+      `cpu_mem(addr, I_ADD_R_I(X, 1));
+
+      label_loop_x = addr;
+
+      `cpu_mem(addr, I_LD_R_R(A, CA));       // A = CA
+      `cpu_mem(addr, I_LD_R_R(B, CB));       // B = CB
+
+      `cpu_mem(addr, I_XOR(I, I, I));        // I = 0
+
+      label_loop_i = addr;
+      `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
+      `cpu_mem(addr, I_LD_R_R(5, A));        // arg1 = A
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
+      `cpu_mem(addr, label_fp_mul);
+      `cpu_mem(addr, I_CALL_R(0));           // r2 = A * A
+      `cpu_mem(addr, I_LD_R_R(T, 2));        // T = A * A
+      `cpu_mem(addr, I_LD_R_R(4, B));        // arg0 = B
+      `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
+      `cpu_mem(addr, label_fp_mul);
+      `cpu_mem(addr, I_CALL_R(0));           // r2 = B * B
+      `cpu_mem(addr, I_SUB(T, T, 2));        // T = A * A - B * B
+      `cpu_mem(addr, I_ADD(T, T, CA));       // T = A * A - B * B + CA
+
+      `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
+      `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
+      `cpu_mem(addr, label_fp_mul);
+      `cpu_mem(addr, I_CALL_R(0));           // r2 = A * B
+      `cpu_mem(addr, I_SL_R_I(2, 1));        // r2 = A * B * 2
+      `cpu_mem(addr, I_ADD(B, 2, CB));       // B = A * B * 2 + CB
+      `cpu_mem(addr, I_LD_R_R(A, T));        // A = T
+
+      `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
+      `cpu_mem(addr, I_LD_R_R(5, A));        // arg1 = A
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
+      `cpu_mem(addr, label_fp_mul);
+      `cpu_mem(addr, I_CALL_R(0));           // r2 = A * A
+      `cpu_mem(addr, I_LD_R_R(T, 2));        // T = A * A
+      `cpu_mem(addr, I_LD_R_R(4, B));        // arg0 = B
+      `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
+      `cpu_mem(addr, label_fp_mul);
+      `cpu_mem(addr, I_CALL_R(0));           // r2 = B * B
+      `cpu_mem(addr, I_ADD(T, T, 2));        // T = A * A + B * B
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // r0 = 4.0
+      `cpu_mem(addr, FP4_0);
+      `cpu_mem(addr, I_CP(T, 0, T));         // 4.0 - (A * A + B * B)
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // r0 = 16
+      `cpu_mem(addr, 16);
+      `cpu_mem(addr, I_JR_NC(0));            // jump +16 if A * A + B * B <= 4.0
+
+      `cpu_mem(addr, I_LD_R_R(4, I));        // arg0 = I
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_put_pixel
+      `cpu_mem(addr, label_put_pixel);
+      `cpu_mem(addr, I_CALL_R(0));           // CALL label_put_pixel
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // r0 = address to exit from variable I loop
+      label_exit_loop_i = addr;              // this word will be set later
+      addr += 2;
+      `cpu_mem(addr, I_JP_R(0));             // break variable I loop
+
+      `cpu_mem(addr, I_ADD_R_I(I, 1));       // I++
+      `cpu_mem(addr, I_LD_RW_I(0));          // r0 = 16
+      `cpu_mem(addr, 16);
+      `cpu_mem(addr, I_CP(I, I, 0));         // I - 16
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_loop_i
+      `cpu_mem(addr, label_loop_i);
+      `cpu_mem(addr, I_JP_C(0));             // JP C, label_loop_i if I < 16
+
+      `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, 'h0000  output port
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RL_I(0, 'h20));    // LD r0, 'h20
+      `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h20
+
+      // break from var I loop
+      `cpu_mem(label_exit_loop_i, addr);
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, FP0_0458
+      `cpu_mem(addr, FP0_0458);
+      `cpu_mem(addr, I_ADD(CA, CA, 0));      // CA += 0.0458
+
+      `cpu_mem(addr, I_SUB_R_I(X, 1));       // X--
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_loop_x
+      `cpu_mem(addr, label_loop_x);
+      `cpu_mem(addr, I_JP_NZ(0));            // jump to label_loop_x if 0 < X
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, FP0_0833
+      `cpu_mem(addr, FP0_0833);
+      `cpu_mem(addr, I_ADD(CB, CB, 0));      // CB += 0.0833
+
+      `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, 'h0000  output port
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RL_I(0, 'h0d));    // LD r0, 'h0d
+      `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h0d
+      `cpu_mem(addr, I_LD_RL_I(0, 'h0a));    // LD r0, 'h0a
+      `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h0d
+
+      `cpu_mem(addr, I_SUB_R_I(Y, 1));       // Y--
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_loop_y
+      `cpu_mem(addr, label_loop_y);
+      `cpu_mem(addr, I_JP_NZ(0));            // jump to label_loop_y if 0 < Y
+
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_run();
+      
+      `tb_assert(regs[reg_pc] === addr);
+
+      tb_end();
+   endtask // tb_test_mandelbrot
+
    initial begin
       tb_init();
       tb_test00();
@@ -648,6 +842,7 @@ module main();
       tb_test_oprations();
       tb_test_jumps();
       tb_test_hello();
+      tb_test_mandelbrot();
       tb_finish();
    end
 
