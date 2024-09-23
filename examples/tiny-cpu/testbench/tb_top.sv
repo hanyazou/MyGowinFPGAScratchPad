@@ -601,14 +601,14 @@ module main();
       cpu_init();
 
       addr = 'h1000;                          // message
-      `cpu_mem(addr, { "e", "H" });
-      `cpu_mem(addr, { "l", "l" });
-      `cpu_mem(addr, { ",", "o" });
-      `cpu_mem(addr, { "w", " " });
-      `cpu_mem(addr, { "r", "o" });
-      `cpu_mem(addr, { "d", "l" });
-      `cpu_mem(addr, { 8'h0d, "!" });
-      `cpu_mem(addr, { 8'h00, 8'h0a });
+      mem_write(addr, { "e", "H" }); addr += 2;
+      mem_write(addr, { "l", "l" }); addr += 2;
+      mem_write(addr, { ",", "o" }); addr += 2;
+      mem_write(addr, { "w", " " }); addr += 2;
+      mem_write(addr, { "r", "o" }); addr += 2;
+      mem_write(addr, { "d", "l" }); addr += 2;
+      mem_write(addr, { 8'h0d, "!" }); addr += 2;
+      mem_write(addr, { 8'h00, 8'h0a }); addr += 2;
 
       addr = 'h0000;                          // start address (reset address)
       `cpu_mem(addr, I_XOR(0, 0, 0));        // XOR r0, r0, r0

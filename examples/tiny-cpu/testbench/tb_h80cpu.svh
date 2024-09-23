@@ -1,4 +1,8 @@
-   `define cpu_mem(a, i) do begin mem_write(a, i); a += 2; end while (0)
+   `define cpu_mem(a, i) do begin mem_write(a, i); \
+                            //$display("mem['h%h] = 'h%h;  \/\/ %s", bus_addr_t'(a / 2), \
+                            //         bus_data_t'(i), `"i`"); \
+                            a += 2; \
+                         end while (0)
 
    reg logic clk, reset;
    reg logic spi_clk, dout, cs, stop;

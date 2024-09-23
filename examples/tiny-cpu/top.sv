@@ -49,7 +49,8 @@ module top(
       end
       endcase // case (clk_state)
    end
-   assign clk = clk_autorun ? counter[21] : S1;
+   //assign clk = clk_autorun ? counter[21] : S1;
+   assign clk = clk_autorun ? counter[1] : S1;
 
    /*
     * debug LED
