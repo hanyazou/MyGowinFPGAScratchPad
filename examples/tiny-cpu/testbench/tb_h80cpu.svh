@@ -1,3 +1,5 @@
+   `define cpu_mem(a, i) do begin mem_write(a, i); a += 2; end while (0)
+
    reg logic clk, reset;
    reg logic spi_clk, dout, cs, stop;
    reg logic [10:1] pin;

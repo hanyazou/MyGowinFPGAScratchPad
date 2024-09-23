@@ -46,33 +46,35 @@ module main();
    endtask // tb_test00
 
    task tb_test_LD_r_nnnn();
+      bus_addr_t addr;
       bus_data_t data;
 
       tb_begin("test_LD_r_nnnn");
       cpu_init();
 
-      mem_write('h0000, I_LD_RW_I(0));        // LD r0.w, 1234h
-      mem_write('h0002, 'h1234);
-      mem_write('h0004, I_LD_RW_I(1));        // LD r1.w, 2000h
-      mem_write('h0006, 'h2000);
-      mem_write('h0008, I_HALT());            // HALT
-
-      mem_write('h000a, I_LD_M_RW(1, 0));     // LD (r1), r0.w
-      mem_write('h000c, I_LD_RW_I(0));        // LD r0.w, 5678h
-      mem_write('h000e, 'h5678);
-      mem_write('h0010, I_HALT());            // HALT
-
       mem_write('h2000, 'h0000);
 
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));        // LD r0.w, 1234h
+      `cpu_mem(addr, 'h1234);
+      `cpu_mem(addr, I_LD_RW_I(1));        // LD r1.w, 2000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, I_HALT());            // HALT
+
       cpu_run();
-      `tb_assert(regs[reg_pc] === 'h000a);
+      `tb_assert(regs[reg_pc] === addr);
       `tb_assert(regs[0] === 'h1234);
       `tb_assert(regs[1] === 'h2000);
       mem_read('h2000, data);
       `tb_assert(data === 'h0000);
 
+      `cpu_mem(addr, I_LD_M_RW(1, 0));     // LD (r1), r0.w
+      `cpu_mem(addr, I_LD_RW_I(0));        // LD r0.w, 5678h
+      `cpu_mem(addr, 'h5678);
+      `cpu_mem(addr, I_HALT());            // HALT
+
       cpu_cont();
-      `tb_assert(regs[reg_pc] === 'h0012);
+      `tb_assert(regs[reg_pc] === addr);
       `tb_assert(regs[0] === 'h5678);
       mem_read('h2000, data);
       `tb_assert(data === 'h1234);
@@ -89,28 +91,17 @@ module main();
       cpu_init();
 
       addr = 'h0000;
-      mem_write(addr, I_LD_RW_I(5));          // LD r5.w, ba98h
-      addr += 2;
-      mem_write(addr, 'hba98);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(6));          // LD r6.w, fedch
-      addr += 2;
-      mem_write(addr, 'hfedc);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(7));          // LD r6.w, fedch
-      addr += 2;
-      mem_write(addr, 'h0000);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(10));         // LD r10.w, 0000h
-      addr += 2;
-      mem_write(addr, 'h0000);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(11));         // LD r11.w, 0000h
-      addr += 2;
-      mem_write(addr, 'h0000);
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(5));          // LD r5.w, ba98h
+      `cpu_mem(addr, 'hba98);
+      `cpu_mem(addr, I_LD_RW_I(6));          // LD r6.w, fedch
+      `cpu_mem(addr, 'hfedc);
+      `cpu_mem(addr, I_LD_RW_I(7));          // LD r6.w, fedch
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RW_I(10));         // LD r10.w, 0000h
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RW_I(11));         // LD r11.w, 0000h
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
       `tb_assert(regs[reg_pc] === addr);
@@ -120,18 +111,12 @@ module main();
       `tb_assert(regs[10] === 'h0000);
       `tb_assert(regs[11] === 'h0000);
 
-      mem_write(addr, I_LD_R_R(22, 5));       // LD r22, r5
-      addr += 2;
-      mem_write(addr, I_LD_R_R(23, 6));       // LD r23, r6
-      addr += 2;
-      mem_write(addr, I_LD_R_R(10, 22));      // LD r10, r22
-      addr += 2;
-      mem_write(addr, I_LD_R_R(11, 23));      // LD r11, r23
-      addr += 2;
-      mem_write(addr, I_LD_R_R(7, 5));        // LD r7, r5
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_R_R(22, 5));       // LD r22, r5
+      `cpu_mem(addr, I_LD_R_R(23, 6));       // LD r23, r6
+      `cpu_mem(addr, I_LD_R_R(10, 22));      // LD r10, r22
+      `cpu_mem(addr, I_LD_R_R(11, 23));      // LD r11, r23
+      `cpu_mem(addr, I_LD_R_R(7, 5));        // LD r7, r5
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[reg_pc] === addr);
@@ -157,22 +142,14 @@ module main();
        * PUSH and POP
        */
       addr = 'h0000;
-      mem_write(addr, I_LD_RW_I(8));          // LD r8.w, 89abh
-      addr += 2;
-      mem_write(addr, 'h89ab);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(9));          // LD r9.w, cdefh
-      addr += 2;
-      mem_write(addr, 'hcdef);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(0));          // LD a0.w, 2000h
-      addr += 2;
-      mem_write(addr, 'h2000);
-      addr += 2;
-      mem_write(addr, I_LD_R_R(reg_sp, 0));   // LD sp, a0
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(8));          // LD r8.w, 89abh
+      `cpu_mem(addr, 'h89ab);
+      `cpu_mem(addr, I_LD_RW_I(9));          // LD r9.w, cdefh
+      `cpu_mem(addr, 'hcdef);
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD a0.w, 2000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, a0
+      `cpu_mem(addr, I_HALT());              // HALT
 
       mem_write('h1ffa, 'h0000);
       mem_write('h1ffc, 'h0000);
@@ -186,12 +163,9 @@ module main();
       `tb_assert(regs[9] === 'hcdef);
       `tb_assert(regs[reg_sp] === 'h2000);
 
-      mem_write(addr, I_PUSH_R(8));           // PUSH (r8)
-      addr += 2;
-      mem_write(addr, I_PUSH_R(9));           // PUSH (r9)
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_PUSH_R(8));           // PUSH (r8)
+      `cpu_mem(addr, I_PUSH_R(9));           // PUSH (r9)
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[reg_pc] === addr);
@@ -205,12 +179,9 @@ module main();
       mem_read('h1ffe, data);
       `tb_assert(data === 'h89ab);
 
-      mem_write(addr, I_POP_R(8));            // POP (r8)
-      addr += 2;
-      mem_write(addr, I_POP_R(9));            // POP (r9)
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_POP_R(8));            // POP (r8)
+      `cpu_mem(addr, I_POP_R(9));            // POP (r9)
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[reg_pc] === addr);
@@ -227,33 +198,23 @@ module main();
       /*
        * CALL and RET
        */
-      mem_write(addr, I_LD_RW_I(0));          // LD r0.w, 1000h
-      addr += 2;
-      mem_write(addr, 'h1000);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(7));          // LD r7.w, ffffh
-      addr += 2;
-      mem_write(addr, 'hffff);
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0.w, 1000h
+      `cpu_mem(addr, 'h1000);
+      `cpu_mem(addr, I_LD_RW_I(7));          // LD r7.w, ffffh
+      `cpu_mem(addr, 'hffff);
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[0] === 'h1000);
       `tb_assert(regs[7] === 'hffff);
 
-      mem_write(addr, I_CALL_R(0));           // CALL (r0)
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_CALL_R(0));           // CALL (r0)
+      `cpu_mem(addr, I_HALT());              // HALT
 
       addr = 'h1000;
-      mem_write(addr, I_LD_RW_I(7));          // LD r7.w, cdefh
-      addr += 2;
-      mem_write(addr, 'hcdef);
-      addr += 2;
-      mem_write(addr, I_RET());               // RET
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(7));          // LD r7.w, cdefh
+      `cpu_mem(addr, 'hcdef);
+      `cpu_mem(addr, I_RET());               // RET
 
       cpu_cont();
       `tb_assert(regs[7] === 'hcdef);
@@ -290,14 +251,10 @@ module main();
 
       cpu_init();
       addr = 'h0000;
-      mem_write(addr, I_LD_RW_I(0));          // LD r0, prev
-      addr += 2;
-      mem_write(addr, prev);
-      addr += 2;
-      mem_write(addr, I_LD_R_R(r, 0));        // LD r, r0
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, prev
+      `cpu_mem(addr, prev);
+      `cpu_mem(addr, I_LD_R_R(r, 0));        // LD r, r0
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
       `tb_assert(regs[reg_pc] === addr);
@@ -306,10 +263,8 @@ module main();
       else
         `tb_assert(regs[r] === prev);
 
-      mem_write(addr, ins);                   // instruction under test
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, ins);                   // instruction under test
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[reg_pc] === addr);
@@ -423,36 +378,24 @@ module main();
 
       cpu_init();
       addr = 'h0000;
-      mem_write(addr, I_LD_RW_I(0));          // LD r0, flags
-      addr += 2;
-      mem_write(addr, flags);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(ins[11:8]));  // LD dst, beefh
-      addr += 2;
-      mem_write(addr, 'hbeef);
-      addr += 2;
-      mem_write(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(ins[7:4]));   // LD a
-      addr += 2;
-      mem_write(addr, a);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(ins[3:0]));   // LD b
-      addr += 2;
-      mem_write(addr, b);
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, flags
+      `cpu_mem(addr, flags);
+      `cpu_mem(addr, I_LD_RW_I(ins[11:8]));  // LD dst, beefh
+      `cpu_mem(addr, 'hbeef);
+      `cpu_mem(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
+      `cpu_mem(addr, I_LD_RW_I(ins[7:4]));   // LD a
+      `cpu_mem(addr, a);
+      `cpu_mem(addr, I_LD_RW_I(ins[3:0]));   // LD b
+      `cpu_mem(addr, b);
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
       `tb_assert(regs[reg_pc] === addr);
       `tb_assert(regs[ins[7:4]] === a);
       `tb_assert(regs[ins[3:0]] === b);
 
-      mem_write(addr, ins);                   // three register operation
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, ins);                   // three register operation
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
       `tb_assert(regs[reg_pc] === addr);
@@ -545,49 +488,33 @@ module main();
       cpu_init();
 
       addr = 'h0000;                          // start address (reset address)
-      mem_write(addr, I_LD_RW_I(0));          // set stack pointer
-      addr += 2;
-      mem_write(addr, 'h0000);
-      addr += 2;
-      mem_write(addr, I_LD_R_R(reg_sp, 0));
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(0));          // LD r0, 8000h + 8h
-      addr += 2;
-      mem_write(addr, 'h8000 - 8);
-      addr += 2;
-      mem_write(addr, I_JP_R(0));             // jump to 8000h + 8h
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(0));          // set stack pointer
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 8000h + 8h
+      `cpu_mem(addr, 'h8000 - 8);
+      `cpu_mem(addr, I_JP_R(0));             // jump to 8000h + 8h
 
       addr = 'h8000 - 8;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
 
       if (jump_result != -1) begin
          bus_addr_t addr;
          addr = jump_result;
-         mem_write(addr, I_HALT());              // HALT
-         addr += 2;
-         mem_write(addr, ret_flag_ins);          // set / clear flag
-         addr += 2;
-         mem_write(addr, ret_ins);               // RETx
-         addr += 2;
-         mem_write(addr, I_HALT());              // HALT
-         addr += 2;
+         `cpu_mem(addr, I_HALT());              // HALT
+         `cpu_mem(addr, ret_flag_ins);          // set / clear flag
+         `cpu_mem(addr, ret_ins);               // RETx
+         `cpu_mem(addr, I_HALT());              // HALT
          not_return_addr = addr;
       end
 
-      mem_write(addr, I_LD_RW_I(jump_ins[3:0])); // load jump addr
-      addr += 2;
-      mem_write(addr, jump_addr);
-      addr += 2;
-      mem_write(addr, jump_flag_ins);         // set / clear flag
-      addr += 2;
-      mem_write(addr, jump_ins);              // jump
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RW_I(jump_ins[3:0])); // load jump addr
+      `cpu_mem(addr, jump_addr);
+      `cpu_mem(addr, jump_flag_ins);         // set / clear flag
+      `cpu_mem(addr, jump_ins);              // jump
+      `cpu_mem(addr, I_HALT());              // HALT
       return_addr = addr;
 
       cpu_cont();
@@ -674,50 +601,34 @@ module main();
       cpu_init();
 
       addr = 'h1000;                          // message
-      mem_write(addr, { "e", "H" }); addr += 2;
-      mem_write(addr, { "l", "l" }); addr += 2;
-      mem_write(addr, { ",", "o" }); addr += 2;
-      mem_write(addr, { "w", " " }); addr += 2;
-      mem_write(addr, { "r", "o" }); addr += 2;
-      mem_write(addr, { "d", "l" }); addr += 2;
-      mem_write(addr, { 8'h0d, "!" }); addr += 2;
-      mem_write(addr, { 8'h00, 8'h0a }); addr += 2;
+      `cpu_mem(addr, { "e", "H" });
+      `cpu_mem(addr, { "l", "l" });
+      `cpu_mem(addr, { ",", "o" });
+      `cpu_mem(addr, { "w", " " });
+      `cpu_mem(addr, { "r", "o" });
+      `cpu_mem(addr, { "d", "l" });
+      `cpu_mem(addr, { 8'h0d, "!" });
+      `cpu_mem(addr, { 8'h00, 8'h0a });
 
       addr = 'h0000;                          // start address (reset address)
-      mem_write(addr, I_XOR(0, 0, 0));        // XOR r0, r0, r0
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(1));          // LD r1, message
-      addr += 2;
-      mem_write(addr, 'h1000);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(2));          // UART TX
-      addr += 2;
-      mem_write(addr, 'h0000);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(3));          // LD r3, 6
-      addr += 2;
-      mem_write(addr, 6);
-      addr += 2;
-      mem_write(addr, I_LD_RW_I(4));          // LD r4, -10
-      addr += 2;
-      mem_write(addr, -10);
-      addr += 2;
+      `cpu_mem(addr, I_XOR(0, 0, 0));        // XOR r0, r0, r0
+      `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, message
+      `cpu_mem(addr, 'h1000);
+      `cpu_mem(addr, I_LD_RW_I(2));          // UART TX
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RW_I(3));          // LD r3, 6
+      `cpu_mem(addr, 6);
+      `cpu_mem(addr, I_LD_RW_I(4));          // LD r4, -10
+      `cpu_mem(addr, -10);
 
       // LOOP:
-      mem_write(addr, I_LD_RB_M(0, 1));       // LD r0.b, (r1)
-      addr += 2;
-      mem_write(addr, I_ADD_R_I(1, 1));       // ADD r1, 1 
-      addr += 2;
-      mem_write(addr, I_ADD(8, 0, 0));        // ADD r8, r0, r0  r0 == 0 ?
-      addr += 2;
-      mem_write(addr, I_JR_Z(3));             // JR Z, (r3)
-      addr += 2;
-      mem_write(addr, I_OUTB(2, 0));          // OUTB (r2), r0.b
-      addr += 2;
-      mem_write(addr, I_JR_R(4));             // JR (r4)
-      addr += 2;
-      mem_write(addr, I_HALT());              // HALT
-      addr += 2;
+      `cpu_mem(addr, I_LD_RB_M(0, 1));       // LD r0.b, (r1)
+      `cpu_mem(addr, I_ADD_R_I(1, 1));       // ADD r1, 1 
+      `cpu_mem(addr, I_ADD(8, 0, 0));        // ADD r8, r0, r0  r0 == 0 ?
+      `cpu_mem(addr, I_JR_Z(3));             // JR Z, (r3)
+      `cpu_mem(addr, I_OUTB(2, 0));          // OUTB (r2), r0.b
+      `cpu_mem(addr, I_JR_R(4));             // JR (r4)
+      `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
       `tb_assert(regs[reg_pc] === addr);
