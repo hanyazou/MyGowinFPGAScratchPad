@@ -3,7 +3,8 @@ IV_OPTS = -I.. -g2012
 
 HDRS = \
     tb.svh \
-    tb_h80cpu.svh
+    tb_h80cpu.svh \
+    ../h80cpu_instmacros.svh
 
 SRCS = \
     ../h80cpu.sv \

@@ -173,7 +173,7 @@ endfunction
 //  move
 //
 function [15:0] I_LD_R_R(reg_num_t rb, reg_num_t ra);
-   if (ra[4] && ~rb[4])
+   if ((ra[4] && ~rb[4]) || (~ra[4] && ~rb[4]))
      //  3 110a_aaaa_bbbb  move reg[A] to reg[B]
      return { 4'h3, 3'b110, ra[4:0], rb[3:0] };
    else

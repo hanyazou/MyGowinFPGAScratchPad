@@ -97,6 +97,10 @@ module main();
       addr += 2;
       mem_write(addr, 'hfedc);
       addr += 2;
+      mem_write(addr, I_LD_RW_I(7));          // LD r6.w, fedch
+      addr += 2;
+      mem_write(addr, 'h0000);
+      addr += 2;
       mem_write(addr, I_LD_RW_I(10));         // LD r10.w, 0000h
       addr += 2;
       mem_write(addr, 'h0000);
@@ -112,6 +116,7 @@ module main();
       `tb_assert(regs[reg_pc] === addr);
       `tb_assert(regs[5] === 'hba98);
       `tb_assert(regs[6] === 'hfedc);
+      `tb_assert(regs[7] === 'h0000);
       `tb_assert(regs[10] === 'h0000);
       `tb_assert(regs[11] === 'h0000);
 
@@ -123,6 +128,8 @@ module main();
       addr += 2;
       mem_write(addr, I_LD_R_R(11, 23));      // LD r11, r23
       addr += 2;
+      mem_write(addr, I_LD_R_R(7, 5));        // LD r7, r5
+      addr += 2;
       mem_write(addr, I_HALT());              // HALT
       addr += 2;
 
@@ -132,6 +139,7 @@ module main();
       `tb_assert(regs[23] === 'hfedc);
       `tb_assert(regs[10] === 'hba98);
       `tb_assert(regs[11] === 'hfedc);
+      `tb_assert(regs[7]  === 'hba98);
 
       reg_dump(0, reg_numregs - 1);
       tb_end();
