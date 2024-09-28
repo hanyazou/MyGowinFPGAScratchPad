@@ -3,7 +3,9 @@ IV_OPTS = -I.. -g2012
 
 HDRS =
 
-SRCS = 
+SRCS = \
+    ../cpu.sv \
+    ../peripheral.sv \
 
 all: run
 
