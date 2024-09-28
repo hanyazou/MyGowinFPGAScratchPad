@@ -1,26 +1,26 @@
-
-parameter DATA_WIDTH = 8;
-parameter ADDR_WIDTH = 16;
-typedef logic [DATA_WIDTH-1:0] bus_data_t;
-typedef logic [ADDR_WIDTH-1:0] bus_addr_t;
-
-module peripheral(
+module peripheral #(
+   parameter [3:0] ID = 4'h0,
+   parameter DATA_WIDTH = 8,
+   parameter ADDR_WIDTH = 16
+   )
+   (
    input clk, reset_n,
    input ce_n,
-   input bus_addr_t addr,
+   input [ADDR_WIDTH-1:0] addr,
    input rd_n, wr_n,
-   inout bus_data_t data,
+   inout [DATA_WIDTH-1:0] data,
    output buswait_n, busrq_n,
    input busack_n
    );
 
-   parameter [3:0] ID = 4'h0;
+   typedef logic [DATA_WIDTH-1:0] bus_data_t;
+   typedef logic [ADDR_WIDTH-1:0] bus_addr_t;
 
    bus_data_t mem[4];
    reg [1:0] state;
 
    assign buswait_n = (!ce_n && state != 0) ? 1'b0 : 'bz;
-   assign data = (!ce_n && !rd_n) ? mem[addr[14:0]] : 'bz;
+   assign data = (!ce_n && !rd_n) ? mem[addr] : 'bz;
 
    always @(posedge clk) begin
       if (!reset_n) begin
@@ -48,15 +48,23 @@ module peripheral(
    end // always @ (posedge clk)
 endmodule
 
-module cpu(
+module cpu #(
+   parameter DATA_WIDTH = 8,
+   parameter ADDR_WIDTH = 16
+   )
+   (
    input clk, reset_n,
    output iorq_n_, mreq_n_,
-   output bus_addr_t addr_,
-   output rd_n_, wr_n_,
-   inout bus_data_t data_,
+   input [ADDR_WIDTH-1:0] addr_,
+   input rd_n_, wr_n_,
+   inout [DATA_WIDTH-1:0] data_,
    input buswait_n, busrq_n,
    output busack_n_
    );
+
+
+   typedef logic [DATA_WIDTH-1:0] bus_data_t;
+   typedef logic [ADDR_WIDTH-1:0] bus_addr_t;
 
    reg iorq_n, mreq_n;
    bus_addr_t addr;
@@ -107,7 +115,7 @@ module cpu(
             mreq_n <= 0;
             rd_n <= 0;
             wr_n <= 1;
-            addr <= 16'h0000;
+            addr <= bus_addr_t'(0);
             state <= 1;
          end
          1: begin
@@ -117,7 +125,7 @@ module cpu(
             mreq_n <= 0;
             rd_n <= 0;
             wr_n <= 1;
-            addr <= 16'h8000;
+            addr <= bus_addr_t'(1 << ADDR_WIDTH-1);
             state <= 2;
          end
          2: begin
@@ -127,7 +135,7 @@ module cpu(
             mreq_n <= 0;
             rd_n <= 1;
             wr_n <= 0;
-            addr <= 16'h0001;
+            addr <= bus_addr_t'(1);
             data <= 8'h99;
             state <= 3;
          end
@@ -137,7 +145,7 @@ module cpu(
             mreq_n <= 0;
             rd_n <= 0;
             wr_n <= 1;
-            addr <= 16'h0000;
+            addr <= bus_addr_t'(0);
             state <= 4;
          end
          4: begin
@@ -147,7 +155,7 @@ module cpu(
             mreq_n <= 0;
             rd_n <= 0;
             wr_n <= 1;
-            addr <= 16'h0001;
+            addr <= bus_addr_t'(1);
             state <= 5;
          end
          5: begin
@@ -171,6 +179,12 @@ endmodule
 
 module main();
 
+   parameter DATA_WIDTH = 8;
+   parameter ADDR_WIDTH = 16;
+
+   typedef logic [DATA_WIDTH-1:0] bus_data_t;
+   typedef logic [ADDR_WIDTH-1:0] bus_addr_t;
+
    reg clk, reset_n;
    wire periph0_en_n, periph1_en_n;
    wire iorq_n, mreq_n;
@@ -179,14 +193,15 @@ module main();
    wire bus_data_t data;
    wire buack_n;
 
-   assign periph0_en_n = !(addr[15] == 0 && ~mreq_n);
-   assign periph1_en_n = !(addr[15] == 1 && ~mreq_n);
+   assign periph0_en_n = !(addr[ADDR_WIDTH-1] == 0 && ~mreq_n);
+   assign periph1_en_n = !(addr[ADDR_WIDTH-1] == 1 && ~mreq_n);
 
-   cpu cpu0(clk, reset_n, iorq_n, mreq_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
-   peripheral #(.ID('h0)) 
-      periph0(~clk, reset_n, periph0_en_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
-   peripheral #(.ID('h1)) 
-      periph1(~clk, reset_n, periph1_en_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+   cpu #( .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH) ) 
+       cpu0(clk, reset_n, iorq_n, mreq_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+   peripheral #(.ID('h0), .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH-1) ) 
+      periph0(~clk, reset_n, periph0_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+   peripheral #(.ID('h1), .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH-1) ) 
+      periph1(~clk, reset_n, periph1_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
 
    task cpu_run_clk(int n);
       integer i;
