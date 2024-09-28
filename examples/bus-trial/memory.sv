@@ -1,4 +1,4 @@
-module peripheral #(
+module memory #(
    parameter [3:0] ID = 4'h0,
    parameter DATA_WIDTH = 8,
    parameter ADDR_WIDTH = 16

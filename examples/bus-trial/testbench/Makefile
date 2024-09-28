@@ -5,7 +5,7 @@ HDRS =
 
 SRCS = \
     ../cpu.sv \
-    ../peripheral.sv \
+    ../memory.sv \
 
 all: run
 
