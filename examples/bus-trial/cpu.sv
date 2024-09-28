@@ -110,17 +110,50 @@ module cpu #(
          end
          5: begin
             $display("cpu: %d read mem %h %h", state, addr, data_);
+            iorq_n <= 0;
+            mreq_n <= 1;
+            rd_n <= 1;
+            wr_n <= 0;
+            addr <= bus_addr_t'(0);
+            data <= "H";
+            state <= 6;
+         end
+         6: begin
+            data <= "e";
+            state <= 7;
+         end
+         7: begin
+            data <= "l";
+            state <= 8;
+         end
+         8: begin
+            data <= "l";
+            state <= 9;
+         end
+         9: begin
+            data <= "o";
+            state <= 10;
+         end
+         10: begin
+            data <= 8'h0d;
+            state <= 11;
+         end
+         11: begin
+            data <= 8'h0a;
+            state <= 12;
+         end
+         12: begin
             iorq_n <= 1;
             mreq_n <= 1;
             rd_n <= 1;
             wr_n <= 1;
-            state <= 6;
+            state <= 13;
          end
-         6: begin
+         13: begin
             $display("cpu: %d done", state);
-            state <= 7;
+            state <= 14;
          end
-         7: begin
+         14: begin
          end
          endcase
       end
