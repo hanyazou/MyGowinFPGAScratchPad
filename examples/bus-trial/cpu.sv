@@ -22,7 +22,7 @@ module cpu #(
    bus_data_t data;
    reg busack_n;
 
-   reg [3:0] state;
+   reg [4:0] state;
 
    wire busmaster;
 
@@ -35,29 +35,29 @@ module cpu #(
     */
 
    assign busmaster = (reset_n && busack_n);
-   assign iorq_n_ = busmaster ? iorq_n : 'bz;
-   assign mreq_n_ = busmaster ? mreq_n : 'bz;
-   assign addr_  = busmaster ? addr : 'bz;
-   assign rd_n_ = busmaster ? rd_n : 'bz;
-   assign wr_n_ = busmaster ? wr_n : 'bz;
-   assign data_ = (busmaster && !wr_n) ? data : 'bz;
-   assign busack_n_ = reset_n ? busack_n : 'bz;
-   
+   assign iorq_n_ = busmaster ? iorq_n : 1'bz;
+   assign mreq_n_ = busmaster ? mreq_n : 1'bz;
+   assign addr_  = busmaster ? addr : {ADDR_WIDTH{1'bz}};
+   assign rd_n_ = busmaster ? rd_n : 1'bz;
+   assign wr_n_ = busmaster ? wr_n : 1'bz;
+   assign data_ = (busmaster && !wr_n) ? data : {DATA_WIDTH{1'bz}};
+   assign busack_n_ = reset_n ? busack_n : 1'bz;
+
    always @(posedge clk) begin
       if (!reset_n) begin
          $display("cpu: in reset...");
          state <= 0;
-         data <= 8'hzz;
-         addr <= 16'hzz;
-         rd_n <= 1'bz;
-         wr_n <= 1'bz;
-         iorq_n <= 1'bz;
-         mreq_n <= 1'bz;
-         busack_n <= 1;
+         data <= { DATA_WIDTH{1'b0} };
+         addr <= { ADDR_WIDTH{1'b0} };
+         rd_n <= 1'b1;
+         wr_n <= 1'b1;
+         iorq_n <= 1'b1;
+         mreq_n <= 1'b1;
+         busack_n <= 1'b1;
       end else begin
-         if (!buswait_n)
+         if (!buswait_n) begin
             $display("cpu: %d wait ...", state);
-         else
+         end else
          case (state)
          0: begin
             $display("cpu: %d read mem 0000 ...", state);
@@ -135,25 +135,57 @@ module cpu #(
             state <= 10;
          end
          10: begin
-            data <= 8'h0d;
+            data <= ",";
             state <= 11;
          end
          11: begin
-            data <= 8'h0a;
+            data <= " ";
             state <= 12;
          end
          12: begin
+            data <= "w";
+            state <= 13;
+         end
+         13: begin
+            data <= "o";
+            state <= 14;
+         end
+         14: begin
+            data <= "r";
+            state <= 15;
+         end
+         15: begin
+            data <= "l";
+            state <= 16;
+         end
+         16: begin
+            data <= "d";
+            state <= 17;
+         end
+         17: begin
+            data <= "!";
+            state <= 18;
+         end
+         18: begin
+            data <= 8'h0d;
+            state <= 19;
+         end
+         19: begin
+            data <= 8'h0a;
+            state <= 20;
+         end
+         20: begin
             iorq_n <= 1;
             mreq_n <= 1;
             rd_n <= 1;
             wr_n <= 1;
-            state <= 13;
+            state <= 21;
          end
-         13: begin
+         21: begin
             $display("cpu: %d done", state);
-            state <= 14;
+            state <= 22;
          end
-         14: begin
+         22: begin
          end
          endcase
       end

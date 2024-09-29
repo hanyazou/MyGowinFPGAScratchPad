@@ -8,6 +8,7 @@ module main();
 
    reg clk, reset_n;
    wire mem0_en_n, mem1_en_n, io0_en_n;
+   wire mem0_wait_n, mem1_wait_n, io0_wait_n;
    wire iorq_n, mreq_n;
    wire bus_addr_t addr;
    wire rd_n, wr_n, buswait_n, busrq_n;
@@ -17,15 +18,16 @@ module main();
    assign mem0_en_n = !(addr[ADDR_WIDTH-1] == 0 && ~mreq_n);
    assign mem1_en_n = !(addr[ADDR_WIDTH-1] == 1 && ~mreq_n);
    assign io0_en_n = !(addr[ADDR_WIDTH-1:4] == 0 && ~iorq_n);
+   assign buswait_n = (mem0_wait_n && mem1_wait_n && io0_wait_n) ? 1'b1 : 1'b0;
 
    cpu #( .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH) ) 
        cpu0(clk, reset_n, iorq_n, mreq_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
    memory #(.ID('h0), .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH-1) ) 
-      mem0(~clk, reset_n, mem0_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+      mem0(~clk, reset_n, mem0_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, mem0_wait_n, busrq_n, buack_n);
    memory #(.ID('h1), .DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH-1) ) 
-      mem1(~clk, reset_n, mem1_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+      mem1(~clk, reset_n, mem1_en_n, addr[ADDR_WIDTH-2:0], rd_n, wr_n, data, mem1_wait_n, busrq_n, buack_n);
    h80cpu_io #(.DATA_WIDTH(DATA_WIDTH), .ADDR_WIDTH(ADDR_WIDTH) ) 
-      io01(~clk, reset_n, io0_en_n, addr, rd_n, wr_n, data, buswait_n, busrq_n, buack_n);
+      io01(~clk, reset_n, io0_en_n, addr, rd_n, wr_n, data, io0_wait_n, busrq_n, buack_n);
 
    task cpu_run_clk(int n);
       integer i;

@@ -19,8 +19,8 @@ module memory #(
    bus_data_t mem[4];
    reg [1:0] state;
 
-   assign buswait_n = (!ce_n && state != 0) ? 1'b0 : 'bz;
-   assign data = (!ce_n && !rd_n) ? mem[addr] : 'bz;
+   assign buswait_n = (!ce_n && state != 0) ? 1'b0 : 1'b1;
+   assign data = (!ce_n && !rd_n) ? mem[addr] : {DATA_WIDTH{1'bz}};
 
    always @(posedge clk) begin
       if (!reset_n) begin
