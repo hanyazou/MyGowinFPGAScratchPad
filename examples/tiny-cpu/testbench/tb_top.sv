@@ -2,6 +2,7 @@ module main();
 
    `include "tb.svh"
    `include "tb_h80cpu.svh"
+   `include "h80cpu_instmacros.svh"
 
    task tb_test00();
       bus_data_t data;
@@ -29,15 +30,15 @@ module main();
       mem_write('h0020, I_HALT());            // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === 'h0012);
-      `tb_assert(regs[0] === 'h0004);
-      `tb_assert(regs[1] === 'h0001);
-      `tb_assert(regs[2] === 'h0012);
-      `tb_assert(regs[3] === 'h2000);
+      `tb_assert(regs(reg_pc) === 'h0012);
+      `tb_assert(regs(0) === 'h0004);
+      `tb_assert(regs(1) === 'h0001);
+      `tb_assert(regs(2) === 'h0012);
+      `tb_assert(regs(3) === 'h2000);
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === 'h0022);
-      `tb_assert(regs[0] === 'h0000);
+      `tb_assert(regs(reg_pc) === 'h0022);
+      `tb_assert(regs(0) === 'h0000);
       mem_read(bus_addr_t'('h2000), data);
       `tb_assert(data === 'h0000);
 
@@ -62,9 +63,9 @@ module main();
       `cpu_mem(addr, I_HALT());            // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[0] === 'h1234);
-      `tb_assert(regs[1] === 'h2000);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h1234);
+      `tb_assert(regs(1) === 'h2000);
       mem_read('h2000, data);
       `tb_assert(data === 'h0000);
 
@@ -74,8 +75,8 @@ module main();
       `cpu_mem(addr, I_HALT());            // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[0] === 'h5678);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h5678);
       mem_read('h2000, data);
       `tb_assert(data === 'h1234);
 
@@ -104,12 +105,12 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[5] === 'hba98);
-      `tb_assert(regs[6] === 'hfedc);
-      `tb_assert(regs[7] === 'h0000);
-      `tb_assert(regs[10] === 'h0000);
-      `tb_assert(regs[11] === 'h0000);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(5) === 'hba98);
+      `tb_assert(regs(6) === 'hfedc);
+      `tb_assert(regs(7) === 'h0000);
+      `tb_assert(regs(10) === 'h0000);
+      `tb_assert(regs(11) === 'h0000);
 
       `cpu_mem(addr, I_LD_R_R(22, 5));       // LD r22, r5
       `cpu_mem(addr, I_LD_R_R(23, 6));       // LD r23, r6
@@ -119,14 +120,14 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[22] === 'hba98);
-      `tb_assert(regs[23] === 'hfedc);
-      `tb_assert(regs[10] === 'hba98);
-      `tb_assert(regs[11] === 'hfedc);
-      `tb_assert(regs[7]  === 'hba98);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(22) === 'hba98);
+      `tb_assert(regs(23) === 'hfedc);
+      `tb_assert(regs(10) === 'hba98);
+      `tb_assert(regs(11) === 'hfedc);
+      `tb_assert(regs(7)  === 'hba98);
 
-      reg_dump(0, reg_numregs - 1);
+      reg_dump(0, CPU_NUMREGS - 1);
       tb_end();
 
    endtask // tb_test_stack
@@ -157,21 +158,21 @@ module main();
       
       cpu_run();
       mem_dump('h1ff0, 16);
-      reg_dump(0, reg_numregs - 1);
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[8] === 'h89ab);
-      `tb_assert(regs[9] === 'hcdef);
-      `tb_assert(regs[reg_sp] === 'h2000);
+      reg_dump(0, CPU_NUMREGS - 1);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(8) === 'h89ab);
+      `tb_assert(regs(9) === 'hcdef);
+      `tb_assert(regs(reg_sp) === 'h2000);
 
       `cpu_mem(addr, I_PUSH_R(8));           // PUSH (r8)
       `cpu_mem(addr, I_PUSH_R(9));           // PUSH (r9)
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[8] === 'h89ab);
-      `tb_assert(regs[9] === 'hcdef);
-      `tb_assert(regs[reg_sp] === 'h1ffc);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(8) === 'h89ab);
+      `tb_assert(regs(9) === 'hcdef);
+      `tb_assert(regs(reg_sp) === 'h1ffc);
       mem_read('h1ffa, data);
       `tb_assert(data === 'h0000);
       mem_read('h1ffc, data);
@@ -184,10 +185,10 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[8] === 'hcdef);
-      `tb_assert(regs[9] === 'h89ab);
-      `tb_assert(regs[reg_sp] === 'h2000);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(8) === 'hcdef);
+      `tb_assert(regs(9) === 'h89ab);
+      `tb_assert(regs(reg_sp) === 'h2000);
       mem_read('h1ffa, data);
       `tb_assert(data === 'h0000);
       mem_read('h1ffc, data);
@@ -205,8 +206,8 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[0] === 'h1000);
-      `tb_assert(regs[7] === 'hffff);
+      `tb_assert(regs(0) === 'h1000);
+      `tb_assert(regs(7) === 'hffff);
 
       `cpu_mem(addr, I_CALL_R(0));           // CALL (r0)
       `cpu_mem(addr, I_HALT());              // HALT
@@ -217,7 +218,7 @@ module main();
       `cpu_mem(addr, I_RET());               // RET
 
       cpu_cont();
-      `tb_assert(regs[7] === 'hcdef);
+      `tb_assert(regs(7) === 'hcdef);
 
       tb_end();
 
@@ -257,24 +258,24 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs(reg_pc) === addr);
       if (r == reg_flag)
-        `tb_assert((regs[r] & 16'hfeff) === prev); // ignore halt flag
+        `tb_assert((regs(r) & 16'hfeff) === prev); // ignore halt flag
       else
-        `tb_assert(regs[r] === prev);
+        `tb_assert(regs(r) === prev);
 
       `cpu_mem(addr, ins);                   // instruction under test
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs(reg_pc) === addr);
       if (r == reg_flag)
-        `tb_assert((regs[r] & 16'hfeff) === result); // ignore halt flag
+        `tb_assert((regs(r) & 16'hfeff) === result); // ignore halt flag
       else
-        `tb_assert(regs[r] === result);
+        `tb_assert(regs(r) === result);
 
       if (saved_assertion_failures != tb_assertion_failures) begin
-         $display("tb_test_1reg_opr: %s: r%0d = %h (%h expected)", opr_name, r, regs[r], result);
+         $display("tb_test_1reg_opr: %s: r%0d = %h (%h expected)", opr_name, r, regs(r), result);
       end
    endtask // tb_test_1reg_opr
 
@@ -390,27 +391,27 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[ins[7:4]] === a);
-      `tb_assert(regs[ins[3:0]] === b);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(ins[7:4]) === a);
+      `tb_assert(regs(ins[3:0]) === b);
 
       `cpu_mem(addr, ins);                   // three register operation
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_cont();
-      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs(reg_pc) === addr);
       if (ins[15:12] == 'hf) begin
-         `tb_assert(regs[ins[11:8]] === 'hbeef);
+         `tb_assert(regs(ins[11:8]) === 'hbeef);
       end else begin
-         `tb_assert(regs[ins[11:8]] === dst);
+         `tb_assert(regs(ins[11:8]) === dst);
       end
-      `tb_assert(z == regs[reg_flag][reg_flag_zero]);   // equal zero
-      `tb_assert(c == regs[reg_flag][reg_flag_carry]);  // carry / borrow
-      `tb_assert(o == regs[reg_flag][reg_flag_parity]); // parity even / overflow
-      `tb_assert(s == regs[reg_flag][reg_flag_sign]);   // negitive / positive
+      `tb_assert(z == ((regs(reg_flag) & (1<<reg_flag_zero)) ? 1 : 0));   // equal zero
+      `tb_assert(c == ((regs(reg_flag) & (1<<reg_flag_carry)) ? 1 : 0));  // carry / borrow
+      `tb_assert(o == ((regs(reg_flag) & (1<<reg_flag_parity)) ? 1 : 0)); // parity even / overflow
+      `tb_assert(s == ((regs(reg_flag) & (1<<reg_flag_sign)) ? 1 : 0));   // negitive / positive
 
       if (saved_assertion_failures != tb_assertion_failures) begin
-         reg_dump(0, reg_numregs - 1);
+         reg_dump(0, CPU_NUMREGS - 1);
       end
       
    endtask // tb_tgest_operation
@@ -520,11 +521,11 @@ module main();
       cpu_cont();
       saved_assertion_failures = tb_assertion_failures;
       if (jump_result != bus_addr_t'(-1))
-         `tb_assert(regs[reg_pc] == jump_result + bus_addr_t'(2));
+         `tb_assert(regs(reg_pc) == jump_result + bus_addr_t'(2));
       else
-         `tb_assert(regs[reg_pc] == return_addr);
+         `tb_assert(regs(reg_pc) == return_addr);
       if (saved_assertion_failures != tb_assertion_failures)
-         reg_dump(0, reg_numregs - 1);
+         reg_dump(0, CPU_NUMREGS - 1);
 
       if (ret_ins == I_NOP())
         return;
@@ -532,11 +533,11 @@ module main();
       cpu_cont();
       saved_assertion_failures = tb_assertion_failures;
       if (ret)
-         `tb_assert(regs[reg_pc] === return_addr);
+         `tb_assert(regs(reg_pc) === return_addr);
       else
-         `tb_assert(regs[reg_pc] === not_return_addr);
+         `tb_assert(regs(reg_pc) === not_return_addr);
       if (saved_assertion_failures != tb_assertion_failures)
-         reg_dump(0, reg_numregs - 1);
+         reg_dump(0, CPU_NUMREGS - 1);
 
    endtask // tb_test_jump
 
@@ -631,9 +632,9 @@ module main();
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
-      `tb_assert(regs[reg_pc] === addr);
-      `tb_assert(regs[0] === 'h0000);
-      `tb_assert(regs[1] === 'h1010);
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h0000);
+      `tb_assert(regs(1) === 'h1010);
 
       tb_end();
    endtask // tb_test_hello
@@ -827,7 +828,7 @@ module main();
 
       cpu_run();
       
-      `tb_assert(regs[reg_pc] === addr);
+      `tb_assert(regs(reg_pc) === addr);
 
       tb_end();
    endtask // tb_test_mandelbrot

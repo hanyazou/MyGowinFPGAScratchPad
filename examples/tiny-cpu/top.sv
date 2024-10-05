@@ -5,6 +5,13 @@ module top(
    output reg uart_txp
    );
 
+   localparam BUS_ADDR_WIDTH = 16;
+   localparam BUS_CMD_WIDTH = 3;
+   localparam BUS_DATA_WIDTH = 16;
+
+   `include "h80bus.svh"
+   `include "h80cpu.svh"
+
    parameter SYSCLK_FREQ = 27000000;
 
    /*
@@ -78,7 +85,7 @@ module top(
     * debug LED
     */
    parameter NUM_CASCADES = 2;
-   wire reg_t regs[reg_numregs];
+   wire reg_t regs[CPU_NUMREGS];
    wire [7:0] frame[4 * NUM_CASCADES];
    assign frame[0] = bus_addr[15:8];
    assign frame[1] = bus_addr[7:0];
@@ -89,9 +96,21 @@ module top(
    assign frame[6] = { clk, clk_autorun, {6{1'b0}} };
    assign frame[7] = regs[reg_flag][7:0];
 
-   h80cpu cpu0 (clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n, regs);
-   h80cpu_mem mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
-   h80cpu_io io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, sysclk, uart_txp);
+   h80cpu  #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      cpu0(clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n);
+   h80cpu_mem  #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
+   h80cpu_io  #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, sysclk, uart_txp);
 
    max7219_display #( .NUM_CASCADES(NUM_CASCADES), .INTENSITY(1) )
      disp(sysclk, S2, frame, spi_clk, dout, cs, stop, pin);

@@ -1,24 +1,29 @@
-module h80cpu_mem(
+module h80cpu_mem #(
+   parameter BUS_ADDR_WIDTH = 16,
+   parameter BUS_CMD_WIDTH = 3,
+   parameter BUS_DATA_WIDTH = 16
+   )
+   (
    input wire clk,
    input wire reset,
    input wire ce_n,
-   input wire bus_addr_t addr,
-   input wire bus_cmd_t cmd,
-   inout wire bus_data_t data_,
+   input wire [BUS_ADDR_WIDTH-1:0] addr,
+   input wire [BUS_CMD_WIDTH-1:0] cmd,
+   inout wire [BUS_DATA_WIDTH-1:0] data_,
    output wire wait_n
    );
+
+   `include "h80bus.svh"
 
    reg [15:0] mem[1024*32];  // 32K words
    reg [15:0] rd_data;
    int state = 0;
 
    assign wait_n = (!ce_n && state != 0) ? 1'b0 : 1'b1;
-   assign data_ = (!ce_n && cmd[0]) ? rd_data : {16{1'bz}};
+   assign data_ = (!ce_n && cmd[0]) ? rd_data : {BUS_DATA_WIDTH{1'bz}};
 
-   initial begin
-      // `include "rom_hello.svh"
-      `include "rom_mandelbrot.svh"
-   end
+   // `include "rom_hello.svh"
+   `include "rom_mandelbrot.svh"
 
    always @(posedge clk) begin
       if (reset) begin

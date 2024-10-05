@@ -1,3 +1,6 @@
+   `include "h80cpu.svh"
+   `include "h80cpu_instmacros.svh"
+   initial begin
       mem['h0000] = I_LD_RL_I(0, 'h04);  // LD r0.l, 04h
       mem['h0001] = I_LD_RH_I(0, 'h00);  // LD r0.h, 00h
       mem['h0002] = I_LD_RL_I(1, 'h01);  // LD r1.l, 01h
@@ -42,3 +45,4 @@
       mem['h1015] = { "d", "l" };
       mem['h1016] = { 8'h0d, "!" };
       mem['h1017] = { 8'h00, 8'h0a };
+   end

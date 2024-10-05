@@ -1,15 +1,22 @@
-module h80cpu_io(
+module h80cpu_io #(
+   parameter BUS_ADDR_WIDTH = 16,
+   parameter BUS_CMD_WIDTH = 3,
+   parameter BUS_DATA_WIDTH = 16
+   )
+   (
    input wire clk,
    input wire reset,
    input wire ce_n,
-   input wire bus_addr_t addr,
-   input wire bus_cmd_t cmd,
-   inout wire bus_data_t data,
-   output wait_n,
+   input wire [BUS_ADDR_WIDTH-1:0] addr,
+   input wire [BUS_CMD_WIDTH-1:0] cmd,
+   inout wire [BUS_DATA_WIDTH-1:0] data,
+   output wire wait_n,
    input wire sysclk,
    output wire uart_txp
    );
    
+   `include "h80bus.svh"
+
    reg [1:0] state;
 
    always @(posedge clk) begin

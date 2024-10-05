@@ -1,3 +1,6 @@
+   `include "h80cpu.svh"
+   `include "h80cpu_instmacros.svh"
+   initial begin
       mem['h0800] = 'h0444;  // I_SRA_R_I(4, 4)
       mem['h0801] = 'h0455;  // I_SRA_R_I(5, FRACBITS - 4)
       mem['h0802] = 'ha245;  // I_MUL(2, 4, 5)
@@ -112,3 +115,4 @@
       mem['h005d] = 'h0014;  // label_loop_y
       mem['h005e] = 'h0300;  // I_JP_NZ(0)
       mem['h005f] = 'h0001;  // I_HALT()
+   end

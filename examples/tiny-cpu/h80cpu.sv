@@ -1,19 +1,23 @@
 `default_nettype none
 
-`include "h80cpu.svh"
-`include "h80cpu_instmacros.svh"
-
-module h80cpu(
-   input wire clk, reset_,
+module h80cpu #(
+   parameter BUS_ADDR_WIDTH = 16,
+   parameter BUS_CMD_WIDTH = 3,
+   parameter BUS_DATA_WIDTH = 16
+   )
+   (
+   input wire  clk, reset_,
    output wire iorq_n_, mreq_n_,
-   output wire bus_addr_t bus_addr_,
-   output wire bus_cmd_t bus_cmd_,
-   inout wire bus_data_t bus_data_,
-   input wire bus_wait_n,
-   output wire reg_t regs_[reg_numregs]
+   output wire [BUS_ADDR_WIDTH-1:0] bus_addr_,
+   output wire [BUS_CMD_WIDTH-1:0] bus_cmd_,
+   inout wire  [BUS_DATA_WIDTH-1:0] bus_data_,
+   input wire  bus_wait_n
    );
 
-   reg_t regs[reg_numregs];
+   `include "h80bus.svh"
+   `include "h80cpu.svh"
+
+   reg_t regs[CPU_NUMREGS];
    bus_num_t bus_num;
    bus_addr_t bus_addr;
    bus_cmd_t bus_cmd;
@@ -36,9 +40,8 @@ module h80cpu(
    assign mreq_n_ = !(bus_num == BUS_MEM && bus_cmd != bus_cmd_none);
    assign bus_addr_ = bus_addr;
    assign bus_cmd_ = bus_cmd;
-   assign bus_data_ = !bus_cmd[0] ? bus_wr_data : {16{1'bz}}; 
+   assign bus_data_ = !bus_cmd[0] ? bus_wr_data : {BUS_DATA_WIDTH{1'bz}}; 
    assign ins = ins_t'(bus_data_);
-   assign regs_ = regs;
 
    task start_instruction_fetch(bus_addr_t addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
@@ -74,6 +77,10 @@ module h80cpu(
       busy = ~bus_wait_n;
    endtask
 
+   function reg_t reg_read(reg_num_t num);
+      return regs[num];
+   endfunction
+      
    task set_halt(bit halt_);
       regs[reg_flag][reg_flag_halt] = halt_;
    endtask

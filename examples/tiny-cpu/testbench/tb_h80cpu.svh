@@ -1,3 +1,10 @@
+   localparam BUS_ADDR_WIDTH = 16;
+   localparam BUS_CMD_WIDTH = 3;
+   localparam BUS_DATA_WIDTH = 16;
+
+   `include "h80bus.svh"
+   `include "h80cpu.svh"
+
    `define cpu_mem(a, i) do begin mem_write(a, i); \
                             //$display("mem['h%h] = 'h%h;  \/\/ %s", bus_addr_t'(a / 2), \
                             //         bus_data_t'(i), `"i`"); \
@@ -16,15 +23,30 @@
    wire bus_wait_n;
    wire mem_en_n, io_en_n;
    wire mem_wait_n, io_wait_n;
-   wire reg_t regs[reg_numregs];
 
    assign mem_en_n = mreq_n;
    assign io_en_n = iorq_n;
    assign bus_wait_n = (mem_wait_n && io_wait_n) ? 1'b1 : 1'b0;
 
-   h80cpu cpu0(clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n, regs);
-   h80cpu_mem mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
-   h80cpu_io io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, clk, uart_txp);
+   h80cpu #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      cpu0(clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n);
+   h80cpu_mem  #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
+   h80cpu_io  #(
+      .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
+      .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
+      .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
+      io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, clk, uart_txp);
+
+  function reg_t regs(reg_num_t n);
+      return cpu0.reg_read(n);
+   endfunction
 
    task cpu_run_clk(int n);
       integer i;
@@ -51,16 +73,18 @@
       reset = 1;
       cpu_run_clk(5);
       reset = 0;
-      for (clk = 0; !regs[reg_flag][reg_flag_halt] && (max_clks < 0 || clk < max_clks); clk++)
+      for (clk = 0; !(regs(reg_flag) & (1 << reg_flag_halt))  && (max_clks < 0 || clk < max_clks);
+           clk++)
         cpu_run_clk(1);
    endtask
 
    task cpu_cont(integer max_clks = -1);
       integer clk;
       bus_data_t data;
-      mem_read(regs[reg_pc], data);  // read next instruction again before release HALT
+      mem_read(regs(reg_pc), data);  // read next instruction again before release HALT
       cpu0.set_halt(0);
-      for (clk = 0; !regs[reg_flag][reg_flag_halt] && (max_clks < 0 || clk < max_clks); clk++)
+      for (clk = 0; !(regs(reg_flag) & (1 << reg_flag_halt)) && (max_clks < 0 || clk < max_clks);
+           clk++)
         cpu_run_clk(1);
    endtask
 
@@ -107,10 +131,10 @@
       end
    endtask
 
-   task reg_dump(int reg_num, int n = reg_numregs - 1);
+   task reg_dump(int reg_num, int n = CPU_NUMREGS - 1);
       integer i;
       for (i = reg_num; i < reg_num + n; i += 4) begin
          $display("%h: %h %h %h %h", reg_num_t'(i),
-            regs[i + 0], regs[i + 1], regs[i + 2], regs[i + 3]);
+            regs(i + 0), regs(i + 1), regs(i + 2), regs(i + 3));
       end
    endtask
