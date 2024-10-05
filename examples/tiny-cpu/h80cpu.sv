@@ -169,7 +169,10 @@ module h80cpu #(
             regs[ins[3:0]] <= ~regs[ins[3:0]] + 1;
          end
          16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_rrrr LD R, nnnnnnnn
-            // TODO (32bit)
+            bus_rd_reg <= ins[3:0];
+            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_pc] + 2);
+            next_ins_addr = regs[reg_pc] + 6;
+            do_memory_access = 1;
          end
          16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_rrrr LD R, nnnn
             bus_rd_reg <= ins[3:0];
@@ -384,14 +387,25 @@ module h80cpu #(
 
       end // case: S_FETCH_EXEC
       S_BUS_RW: begin  // memory access completion
-         if (bus_cmd == bus_cmd_read_w)
+         if (bus_cmd == bus_cmd_read) begin
             regs[bus_rd_reg] <= bus_data_;
-         if (bus_cmd == bus_cmd_read_b)
-            regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_data_[7:0] };
-         if (bus_rd_reg == reg_pc)
+         end
+         if (bus_cmd == bus_cmd_read_w) begin
+            if (BUS_DATA_WIDTH < CPU_REG_WIDTH) begin
+              regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:BUS_DATA_WIDTH],
+                                    bus_data_[BUS_DATA_WIDTH-1:0] };
+            end else begin
+              regs[bus_rd_reg] <= bus_data_[BUS_DATA_WIDTH-1:0];
+            end
+         end
+         if (bus_cmd == bus_cmd_read_b) begin
+            regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:8], bus_data_[7:0] };
+         end
+         if (bus_rd_reg == reg_pc) begin
             start_instruction_fetch(bus_data_);
-         else
+         end else begin
             start_instruction_fetch(regs[reg_pc]);
+         end
       end
       endcase // case (state)
    end // always @ (posedge clk)

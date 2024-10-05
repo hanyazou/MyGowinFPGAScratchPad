@@ -84,6 +84,65 @@ module main();
 
    endtask // tb_test_LD_r_nnnn
 
+   task tb_test_LD_r_nnnnnnnn();
+      bus_addr_t addr;
+      bus_data_t data;
+      int saved_assertion_failures;
+
+      tb_begin("test_LD_r_nnnnnnnn");
+      cpu_init();
+
+      mem_write('h2000, 'h0000);
+      mem_write('h2002, 'h0000);
+
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_R_I(0));         // LD r0, 12345678h
+      `cpu_mem(addr, 'h5678);
+      `cpu_mem(addr, 'h1234);
+      `cpu_mem(addr, I_LD_R_I(1));         // LD r1, 00002000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_HALT());            // HALT
+
+      saved_assertion_failures = tb_assertion_failures;
+
+      cpu_run();
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h12345678);
+      `tb_assert(regs(1) === 'h00002000);
+      mem_read('h2000, data);
+      `tb_assert(data === 'h0000);
+      mem_read('h2002, data);
+      `tb_assert(data === 'h0000);
+
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      `cpu_mem(addr, I_LD_M_R(1, 0));      // LD (r1), r0
+      `cpu_mem(addr, I_LD_R_I(0));         // LD r0, 9abcdef0h
+      `cpu_mem(addr, 'hdef0);
+      `cpu_mem(addr, 'h9abc);
+      `cpu_mem(addr, I_HALT());            // HALT
+
+      saved_assertion_failures = tb_assertion_failures;
+
+      cpu_cont();
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h9abcdef0);
+      mem_read('h2000, data);
+      `tb_assert(data === 'h5678);
+      mem_read('h2002, data);
+      `tb_assert(data === 'h1234);
+
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      tb_end();
+
+   endtask // tb_test_LD_r_nnnnnnnn
+
    task tb_test_move();
       bus_addr_t addr;
       bus_data_t data;
@@ -837,6 +896,9 @@ module main();
       tb_init();
       tb_test00();
       tb_test_LD_r_nnnn();
+      if (CPU_REG_WIDTH == 32) begin
+         tb_test_LD_r_nnnnnnnn();
+      end
       tb_test_move();
       tb_test_stack();
       tb_test_1reg_oprs();
