@@ -9,11 +9,22 @@
    reg logic [10:1] pin;
    reg logic uart_txp;
 
+   wire iorq_n, mreq_n;
    wire bus_addr_t bus_addr;
-   wire ins_t ins;
+   wire bus_cmd_t bus_cmd;
+   wire bus_data_t bus_data;
+   wire bus_wait_n;
+   wire mem_en_n, io_en_n;
+   wire mem_wait_n, io_wait_n;
    wire reg_t regs[reg_numregs];
 
-   h80cpu cpu0(clk, clk, reset, bus_addr, ins, regs, uart_txp);
+   assign mem_en_n = mreq_n;
+   assign io_en_n = iorq_n;
+   assign bus_wait_n = (mem_wait_n && io_wait_n) ? 1'b1 : 1'b0;
+
+   h80cpu cpu0(clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n, regs);
+   h80cpu_mem mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
+   h80cpu_io io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, clk, uart_txp);
 
    task cpu_run_clk(int n);
       integer i;
@@ -26,7 +37,7 @@
    task cpu_init();
       integer i;
       
-      clk = 0;
+      clk = 1;
       reset = 0;
       for (i = 0; i < 10; i++) begin
          cpu0.set_halt(1);

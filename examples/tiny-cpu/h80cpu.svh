@@ -26,6 +26,7 @@ localparam bus_cmd_write_w = 3'b010;
 localparam bus_cmd_read_w =  3'b011;
 localparam bus_cmd_write_b = 3'b100;
 localparam bus_cmd_read_b =  3'b101;
+localparam bus_cmd_none =    3'b111;
 
 localparam BUS_MEM = 1'b0;
 localparam BUS_IO = 1'b1;

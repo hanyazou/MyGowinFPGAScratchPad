@@ -53,24 +53,45 @@ module top(
    assign clk = clk_autorun ? counter[1] : S1;
 
    /*
+    * reset
+    */
+   wire reset;
+   assign reset = S2;
+
+   /*
+    * bus
+    */
+   wire iorq_n, mreq_n;
+   wire bus_addr_t bus_addr;
+   wire bus_cmd_t bus_cmd;
+   wire bus_data_t bus_data;
+   wire bus_wait_n;
+
+   wire mem_en_n, io_en_n;
+   wire mem_wait_n, io_wait_n;
+
+   assign mem_en_n = mreq_n;
+   assign io_en_n = iorq_n;
+   assign bus_wait_n = (mem_wait_n && io_wait_n) ? 1'b1 : 1'b0;
+
+   /*
     * debug LED
     */
    parameter NUM_CASCADES = 2;
-   wire bus_addr_t bus_addr;
-   wire ins_t ins;
    wire reg_t regs[reg_numregs];
    wire [7:0] frame[4 * NUM_CASCADES];
    assign frame[0] = bus_addr[15:8];
    assign frame[1] = bus_addr[7:0];
-   assign frame[2] = ins[15:8];
-   assign frame[3] = ins[7:0];
+   assign frame[2] = bus_data[15:8];
+   assign frame[3] = bus_data[7:0];
    assign frame[4] = regs[0][15:8];
    assign frame[5] = regs[0][7:0];
    assign frame[6] = { clk, clk_autorun, {6{1'b0}} };
    assign frame[7] = regs[reg_flag][7:0];
 
-   h80cpu #( .SYSCLK_FREQ(SYSCLK_FREQ) )
-     cpu0 (sysclk, clk, S2, bus_addr, ins, regs, uart_txp);
+   h80cpu cpu0 (clk, reset, iorq_n, mreq_n, bus_addr, bus_cmd, bus_data, bus_wait_n, regs);
+   h80cpu_mem mem0(~clk, reset, mem_en_n, bus_addr, bus_cmd, bus_data, mem_wait_n);
+   h80cpu_io io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, sysclk, uart_txp);
 
    max7219_display #( .NUM_CASCADES(NUM_CASCADES), .INTENSITY(1) )
      disp(sysclk, S2, frame, spi_clk, dout, cs, stop, pin);

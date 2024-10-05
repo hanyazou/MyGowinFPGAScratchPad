@@ -4,55 +4,41 @@
 `include "h80cpu_instmacros.svh"
 
 module h80cpu(
-   input wire logic sysclk, clk, reset_,
+   input wire clk, reset_,
+   output wire iorq_n_, mreq_n_,
    output wire bus_addr_t bus_addr_,
-   output wire ins_t ins_,
-   output wire reg_t regs_[reg_numregs],
-   output reg  uart_txp
+   output wire bus_cmd_t bus_cmd_,
+   inout wire bus_data_t bus_data_,
+   input wire bus_wait_n,
+   output wire reg_t regs_[reg_numregs]
    );
 
-   parameter SYSCLK_FREQ = 27000000;
-
    reg_t regs[reg_numregs];
-   assign regs_ = regs;
-   enum { S_FETCH_EXEC, S_BUS_RW } state;
-   bus_addr_t bus_addr;
-   assign bus_addr_ = bus_addr;
-   bus_cmd_t bus_cmd;
    bus_num_t bus_num;
-   reg bus_run[bus_numbuses];
+   bus_addr_t bus_addr;
+   bus_cmd_t bus_cmd;
    bus_data_t bus_wr_data;
-   wire bus_data_t bus_rd_data[bus_numbuses];
    reg_num_t bus_rd_reg;
+
+   enum { S_FETCH_EXEC, S_BUS_RW } state;
+   int next_ins_addr;
+   int do_memory_access;
+   reg [1:0] reset_pon = 2'b10;
 
    wire reg_t pc;
    wire reg_t flag;
    wire bus_done[bus_numbuses];
    wire ins_t ins;
-   wire bus_busy;
-   assign bus_busy = ((bus_run[BUS_MEM] != bus_done[BUS_MEM]) ||
-                      (bus_run[BUS_IO] != bus_done[BUS_IO]));
-   assign ins = ins_t'(bus_rd_data[BUS_MEM]);
-   assign ins_ = ins;
-   int next_ins_addr;
-   int do_memory_access;
-
-   /*
-    * reset
-    */
-   reg [1:0] reset_pon = 2'b10;
    wire reset;
-   assign reset = (reset_ || reset_pon) ? 1'b1 : 1'b0;
-   always @(negedge clk) begin
-      if (reset_pon) begin
-         reset_pon <= reset_pon - 1'b1;
-      end
-   end
 
-   h80cpu_mem mem0(clk, reset, bus_addr, bus_cmd, bus_run[BUS_MEM], bus_wr_data,
-                   bus_rd_data[BUS_MEM], bus_done[BUS_MEM]);
-   h80cpu_io io0(clk, reset, bus_addr, bus_cmd, bus_run[BUS_IO], bus_wr_data,
-                 bus_rd_data[BUS_IO], bus_done[BUS_IO], sysclk, uart_txp);
+   assign reset = (reset_ || reset_pon) ? 1'b1 : 1'b0;
+   assign iorq_n_ = !(bus_num == BUS_IO && bus_cmd != bus_cmd_none);
+   assign mreq_n_ = !(bus_num == BUS_MEM && bus_cmd != bus_cmd_none);
+   assign bus_addr_ = bus_addr;
+   assign bus_cmd_ = bus_cmd;
+   assign bus_data_ = !bus_cmd[0] ? bus_wr_data : {16{1'bz}}; 
+   assign ins = ins_t'(bus_data_);
+   assign regs_ = regs;
 
    task start_instruction_fetch(bus_addr_t addr);
       bus_run_cmd(BUS_MEM, bus_cmd_read_w, addr);
@@ -63,7 +49,6 @@ module h80cpu(
       bus_cmd <= cmd;
       bus_addr <= addr;
       bus_num <= bus;
-      bus_run[bus] <= ~bus_run[bus];
    endtask
 
    task register_(reg_num_t regnum, reg_t value);
@@ -82,34 +67,38 @@ module h80cpu(
       bus_addr = addr;
       bus_num = bus;
       bus_wr_data = wr_data;
-      bus_run[bus] = ~bus_run[bus];
    endtask
 
    task bus_wait(bus_num_t bus, output busy, output bus_data_t rd_data);
-      rd_data = bus_rd_data[bus];
-      busy = (bus_run[bus] != bus_done[bus]);
+      rd_data = bus_data_;
+      busy = ~bus_wait_n;
    endtask
 
    task set_halt(bit halt_);
       regs[reg_flag][reg_flag_halt] = halt_;
    endtask
 
-   always @(negedge clk) begin
+   always @(posedge clk) begin
+      if (reset_pon) begin
+         reset_pon <= reset_pon - 1'b1;
+      end
+   end
+
+   always @(posedge clk) begin
       if (reset) begin
          regs[reg_pc] <= 'h0000;
          regs[reg_flag] <= 'h0000;
-         bus_run[BUS_IO] <= 0;
          state <= S_FETCH_EXEC;
 
          // fetch first instruction
+         bus_num = BUS_MEM;
          bus_addr <= 'h0000;
          bus_cmd <= bus_cmd_read_w;
-         bus_run[BUS_MEM] <= 1;
       end else
       if (regs[reg_flag][reg_flag_halt]) begin
          // halted with no execution
       end else
-      if (bus_busy) begin
+      if (!bus_wait_n) begin
          // wait for memory access completion
       end else
       case (state)
@@ -122,6 +111,7 @@ module h80cpu(
          end
          16'b0000_0000_0000_0001: begin  //  0 0000_0000_0001  HALT
             regs[reg_flag][reg_flag_halt] <= 1;
+            bus_cmd <= bus_cmd_none;
          end
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
             bus_rd_reg <= reg_pc;
@@ -388,16 +378,16 @@ module h80cpu(
       end // case: S_FETCH_EXEC
       S_BUS_RW: begin  // memory access completion
          if (bus_cmd == bus_cmd_read_w)
-            regs[bus_rd_reg] <= bus_rd_data[bus_num];
+            regs[bus_rd_reg] <= bus_data_;
          if (bus_cmd == bus_cmd_read_b)
-            regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_rd_data[bus_num][7:0] };
+            regs[bus_rd_reg] <= { regs[bus_rd_reg][15:8], bus_data_[7:0] };
          if (bus_rd_reg == reg_pc)
-            start_instruction_fetch(bus_rd_data[BUS_MEM]);
+            start_instruction_fetch(bus_data_);
          else
             start_instruction_fetch(regs[reg_pc]);
       end
       endcase // case (state)
-   end // always @ (negedge clk)
+   end // always @ (posedge clk)
 
 endmodule
 
@@ -405,19 +395,21 @@ endmodule
 module h80cpu_mem(
    input wire clk,
    input wire reset,
+   input wire ce_n,
    input wire bus_addr_t addr,
    input wire bus_cmd_t cmd,
-   input wire run,
-   input wire bus_data_t wr_data,
-   output bus_data_t rd_data,
-   output logic done
+   inout wire bus_data_t data_,
+   output wire wait_n
    );
 
    reg [15:0] mem[1024*32];  // 32K words
+   reg [15:0] rd_data;
    int state = 0;
 
+   assign wait_n = (!ce_n && state != 0) ? 1'b0 : 1'b1;
+   assign data_ = (!ce_n && cmd[0]) ? rd_data : {16{1'bz}};
+
    initial begin
-      done <= 0;
       /*
       mem['h0000] = I_LD_RL_I(0, 'h04);  // LD r0.l, 04h
       mem['h0001] = I_LD_RH_I(0, 'h00);  // LD r0.h, 00h
@@ -584,16 +576,15 @@ module h80cpu_mem(
    always @(posedge clk) begin
       if (reset) begin
          state <= 0;
-         done <= 0;
       end else begin
          case (state)
          0: begin
-            if (run != done) begin
+            if (!ce_n) begin
                case (cmd)
                bus_cmd_read_w:
                   rd_data <= mem[addr[15:1]];
                bus_cmd_write_w:
-                  mem[addr[15:1]] <= wr_data;
+                  mem[addr[15:1]] <= data_;
                bus_cmd_read_b:
                  if (addr[0])
                    rd_data <= { 8'h00, mem[addr[15:1]][15:8] };
@@ -601,11 +592,10 @@ module h80cpu_mem(
                    rd_data <= { 8'h00, mem[addr[15:1]][7:0] };
                bus_cmd_write_b:
                  if (addr[0])
-                   mem[addr[15:1]] <= { wr_data[7:0], mem[addr[15:1]][7:0] };
+                   mem[addr[15:1]] <= { data_[7:0], mem[addr[15:1]][7:0] };
                  else
-                   mem[addr[15:1]] <= { mem[addr[15:1]][15:8], wr_data[7:0] };
+                   mem[addr[15:1]] <= { mem[addr[15:1]][15:8], data_[7:0] };
                endcase
-               done <= ~done;
                state <= 0;  // there is only one state, no transition
             end
          end
