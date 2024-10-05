@@ -516,15 +516,15 @@ module main();
       tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0808, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 0);
       tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha800, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
 
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffff, 'ha5a5, "&", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa5, 'ha5a5, "&", 'hff00, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafa, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa8, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffff, 'ha5a5, "|", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa5, 'ha5a5, "|", 'hff00, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafa, 'ha8a8, "|", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa8, 'ha8a8, "|", 'hff00, 0, 0, 0, 1);
 
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffff, 'ha5a5, "&", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h5aa5, 'ha5a5, "&", 'hff00, 0, 0, 1, 0);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h57a8, 'ha8a8, "&", 'hff00, 0, 0, 1, 0);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffff, 'ha5a5, "^", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h5aa5, 'ha5a5, "^", 'hff00, 0, 0, 1, 0);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2, 'ha8a8, "^", 'h5a5a, 0, 0, 1, 1);
+      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h57a8, 'ha8a8, "^", 'hff00, 0, 0, 1, 0);
 
       tb_end();
 
