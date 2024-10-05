@@ -8,6 +8,7 @@ HDRS = \
 
 SRCS = \
     ../h80cpu.sv \
+    ../h80cpu_mem.sv \
     h80cpu_io_dummy.sv \
 
 all: run

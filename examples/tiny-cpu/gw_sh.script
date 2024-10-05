@@ -1,4 +1,5 @@
 add_file ${PJD}/h80cpu.sv
+add_file ${PJD}/h80cpu_mem.sv
 add_file ${PJD}/h80cpu_io.sv
 add_file ${PJD}/../max7219-segleds/max7219.sv
 add_file ${PJD}/../max7219-segleds/sseg_decoder.sv
