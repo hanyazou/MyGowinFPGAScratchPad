@@ -406,9 +406,8 @@ module h80cpu #(
             regs[bus_rd_reg] <= bus_data_;
          end
          if (bus_cmd == bus_cmd_read_w) begin
-            if (BUS_DATA_WIDTH < CPU_REG_WIDTH) begin
-              regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:BUS_DATA_WIDTH],
-                                    bus_data_[BUS_DATA_WIDTH-1:0] };
+            if (16 < BUS_DATA_WIDTH && 16 < CPU_REG_WIDTH) begin
+              regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:16], bus_data_[15:0] };
             end else begin
               regs[bus_rd_reg] <= bus_data_[BUS_DATA_WIDTH-1:0];
             end
