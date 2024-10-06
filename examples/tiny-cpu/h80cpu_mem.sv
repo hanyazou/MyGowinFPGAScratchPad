@@ -34,12 +34,15 @@ module h80cpu_mem #(
             if (!ce_n) begin
                case (cmd)
                bus_cmd_read: begin
-                  $display("bus_cmd_read: %h: %h", addr, { mem[addr[15:1]+1], mem[addr[15:1]+0] });
                   rd_data <= { mem[addr[15:1] + 1], mem[addr[15:1] + 0] };
                end
                bus_cmd_write: begin
-                  mem[addr[15:1] + 0] <= data_[15:0];
-                  mem[addr[15:1] + 1] <= data_[31:16];
+                  if (16 < BUS_DATA_WIDTH) begin
+                     mem[addr[15:1] + 0] <= data_[15:0];
+                     mem[addr[15:1] + 1] <= data_[BUS_DATA_WIDTH-1:16];
+                  end else begin
+                     mem[addr[15:1] + 0] <= data_[BUS_DATA_WIDTH-1:0];
+                  end
                end
                bus_cmd_read_w:
                   rd_data <= mem[addr[15:1]];
