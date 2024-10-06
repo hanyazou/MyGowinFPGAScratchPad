@@ -156,13 +156,25 @@ module h80cpu #(
          end
          16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
                                          //  (copy R[15] for sign extension)
-            // TODO (32bit)
+            if (16 < CPU_REG_WIDTH) begin
+               reg_num_t r;
+               r = ins[3:0];
+               if (regs[r][15] == 0) begin
+                  regs[r] <= (regs[r] & 16'hffff);
+               end else begin
+                  regs[r] <= (regs[r] | { { CPU_REG_WIDTH - 16 {1'b1}}, 16'h00 } );
+               end
+            end
          end
          16'b0000_0001_0011_zzzz: begin  //  0 0001_0011_rrrr EXTN R.b
                                          //  (copy R[7] for sign extension)
             reg_num_t r;
             r = ins[3:0];
-            regs[r] <= regs[r][7] == 0 ? (regs[r] & 'h00ff) : (regs[r] | 'hff00);
+            if (regs[r][7] == 0) begin
+               regs[r] <= (regs[r] & 8'hff);
+            end else begin
+               regs[r] <= (regs[r] | { { CPU_REG_WIDTH - 8 {1'b1}}, 8'h00 } );
+            end
          end
          16'b0000_0001_0100_zzzz: begin  //  0 0001_0100_rrrr CPL R (invert R, one's complement)
             regs[ins[3:0]] <= ~regs[ins[3:0]];
@@ -253,7 +265,8 @@ module h80cpu #(
             `register(ins[7:4], regs[ins[7:4]] << ins[3:0]);
          end
          16'b0000_0111_zzzz_zzzz: begin  //  0 0111_rrrr_nnnn RLC R, n (rotate left circular)
-            `register(ins[7:4], (regs[ins[7:4]] << ins[3:0]) | (regs[ins[7:4]] >> (16-ins[3:0])));
+            `register(ins[7:4],
+               (regs[ins[7:4]] << ins[3:0]) | (regs[ins[7:4]] >> (CPU_REG_WIDTH-ins[3:0])));
          end
          16'b0000_1000_zzzz_zzzz: begin  //  0 1000_rrrr_nnnn ADD R, n
             bit [CPU_REG_WIDTH:0] res;

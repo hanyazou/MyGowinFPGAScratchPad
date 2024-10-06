@@ -314,8 +314,14 @@ module main();
 
       cpu_init();
       addr = 'h0000;
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, prev
-      `cpu_mem(addr, prev);
+      if (16 < CPU_REG_WIDTH) begin
+         `cpu_mem(addr, I_LD_R_I(0));           // LD r0, prev
+         `cpu_mem(addr, prev[15:0]);
+         `cpu_mem(addr, prev[CPU_REG_WIDTH-1:16]);
+      end else begin
+         `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, prev
+         `cpu_mem(addr, prev);
+      end
       `cpu_mem(addr, I_LD_R_R(r, 0));        // LD r, r0
       `cpu_mem(addr, I_HALT());              // HALT
 
@@ -344,14 +350,14 @@ module main();
    task tb_test_1reg_oprs();
       tb_begin("test_1reg_oprs");
       //               instruction     reg num   before  after
-      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h0074, 'h0074);
-      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h8774, 'h0074);
-      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h0098, 'hff98);
-      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h1298, 'hff98);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h00000074, 'h00000074);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h00008774, 'h00000074);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h00000098, 'hffffff98);
+      tb_test_1reg_opr(I_EXTN_RB(0),          0, 'h00001298, 'hffffff98);
 
-      tb_test_1reg_opr(I_CPL_R(0),            0, 'h0000, 'hffff);
-      tb_test_1reg_opr(I_CPL_R(0),            0, 'hffff, 'h0000);
-      tb_test_1reg_opr(I_CPL_R(0),            0, 'h7171, 'h8e8e);
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'h00000000, 'hffffffff);
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'hffffffff, 'h00000000);
+      tb_test_1reg_opr(I_CPL_R(0),            0, 'h71717171, 'h8e8e8e8e);
 
       tb_test_1reg_opr(I_NEG_R(0),            0,      1,     -1);
       tb_test_1reg_opr(I_NEG_R(0),            0,     -8,      8);
@@ -398,21 +404,43 @@ module main();
       tb_test_1reg_opr(I_SUB_R_I(0, 1),       0, 'h0100, 'h00ff);
       tb_test_1reg_opr(I_SUB_R_I(0, 15),      0, 'h0100, 'h00f1);
 
-      tb_test_1reg_opr(I_SRA_R_I(0, 1),       0, 'h8001, 'hc000);
-      tb_test_1reg_opr(I_SRA_R_I(0, 8),       0, 'h8001, 'hff80);
-      tb_test_1reg_opr(I_SRA_R_I(0, 15),      0, 'h8001, 'hffff);
+      if (CPU_REG_WIDTH == 16) begin
+         tb_test_1reg_opr(I_SRA_R_I(0, 1),       0, 'h8001, 'hc000);
+         tb_test_1reg_opr(I_SRA_R_I(0, 8),       0, 'h8001, 'hff80);
+         tb_test_1reg_opr(I_SRA_R_I(0, 15),      0, 'h8001, 'hffff);
 
-      tb_test_1reg_opr(I_SRL_R_I(0, 1),       0, 'h8001, 'h4000);
-      tb_test_1reg_opr(I_SRL_R_I(0, 8),       0, 'h8001, 'h0080);
-      tb_test_1reg_opr(I_SRL_R_I(0, 15),      0, 'h8001, 'h0001);
+         tb_test_1reg_opr(I_SRL_R_I(0, 1),       0, 'h8001, 'h4000);
+         tb_test_1reg_opr(I_SRL_R_I(0, 8),       0, 'h8001, 'h0080);
+         tb_test_1reg_opr(I_SRL_R_I(0, 15),      0, 'h8001, 'h0001);
 
-      tb_test_1reg_opr(I_SL_R_I(0, 1),        0, 'h8001, 'h0002);
-      tb_test_1reg_opr(I_SL_R_I(0, 8),        0, 'h8001, 'h0100);
-      tb_test_1reg_opr(I_SL_R_I(0, 15),       0, 'h8001, 'h8000);
+         tb_test_1reg_opr(I_SL_R_I(0, 1),        0, 'h8001, 'h0002);
+         tb_test_1reg_opr(I_SL_R_I(0, 8),        0, 'h8001, 'h0100);
+         tb_test_1reg_opr(I_SL_R_I(0, 15),       0, 'h8001, 'h8000);
 
-      tb_test_1reg_opr(I_RLC_R_I(0, 1),       0, 'h8001, 'h0003);
-      tb_test_1reg_opr(I_RLC_R_I(0, 8),       0, 'h8001, 'h0180);
-      tb_test_1reg_opr(I_RLC_R_I(0, 15),      0, 'h8001, 'hc000);
+         tb_test_1reg_opr(I_RLC_R_I(0, 1),       0, 'h8001, 'h0003);
+         tb_test_1reg_opr(I_RLC_R_I(0, 8),       0, 'h8001, 'h0180);
+         tb_test_1reg_opr(I_RLC_R_I(0, 15),      0, 'h8001, 'hc000);
+      end else
+      if (CPU_REG_WIDTH == 32) begin
+         tb_test_1reg_opr(I_SRA_R_I(0, 1),       0, 'h80000001, 'hc0000000);
+         tb_test_1reg_opr(I_SRA_R_I(0, 8),       0, 'h80000001, 'hff800000);
+         tb_test_1reg_opr(I_SRA_R_I(0, 15),      0, 'h80000001, 'hffff0000);
+
+         tb_test_1reg_opr(I_SRL_R_I(0, 1),       0, 'h80000001, 'h40000000);
+         tb_test_1reg_opr(I_SRL_R_I(0, 8),       0, 'h80000001, 'h00800000);
+         tb_test_1reg_opr(I_SRL_R_I(0, 15),      0, 'h80000001, 'h00010000);
+
+         tb_test_1reg_opr(I_SL_R_I(0, 1),        0, 'h80000001, 'h00000002);
+         tb_test_1reg_opr(I_SL_R_I(0, 8),        0, 'h80000001, 'h00000100);
+         tb_test_1reg_opr(I_SL_R_I(0, 15),       0, 'h80000001, 'h00008000);
+
+         tb_test_1reg_opr(I_RLC_R_I(0, 1),       0, 'h80000001, 'h00000003);
+         tb_test_1reg_opr(I_RLC_R_I(0, 8),       0, 'h80000001, 'h00000180);
+         tb_test_1reg_opr(I_RLC_R_I(0, 15),      0, 'h80000001, 'h0000c000);
+      end else begin
+         // fail
+         `tb_assert(0);
+      end
 
       tb_end();
    endtask // tb_test_1reg_oprs
