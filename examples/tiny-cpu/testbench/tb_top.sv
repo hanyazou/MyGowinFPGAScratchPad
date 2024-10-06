@@ -146,6 +146,9 @@ module main();
    task tb_test_move();
       bus_addr_t addr;
       bus_data_t data;
+      int saved_assertion_failures;
+
+      saved_assertion_failures = tb_assertion_failures;
 
       tb_begin("test_move");
       cpu_init();
@@ -186,7 +189,9 @@ module main();
       `tb_assert(regs(11) === 'hfedc);
       `tb_assert(regs(7)  === 'hba98);
 
-      reg_dump(0, CPU_NUMREGS - 1);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
       tb_end();
 
    endtask // tb_test_stack
@@ -216,8 +221,6 @@ module main();
       mem_write('h1ffe, 'h0000);
       
       cpu_run();
-      mem_dump('h1ff0, 16);
-      reg_dump(0, CPU_NUMREGS - 1);
       `tb_assert(regs(reg_pc) === addr);
       `tb_assert(regs(8) === 'h89ab);
       `tb_assert(regs(9) === 'hcdef);
