@@ -31,6 +31,9 @@ main()
     local done=false
     local exec_ide=false
 
+    read_rcfile ~/.macgowinrc
+    read_rcfile ./macgowinrc
+
     while [[ $# -gt 0 ]]; do
         case $1 in
         -h|--help)
@@ -124,6 +127,28 @@ main()
         run_container
         docker exec -it ${IMAGENAME}-i \
             /bin/bash -c gw_ide
+    fi
+}
+
+read_rcfile()
+{
+    rcfile=$1
+
+    if [ -r $rcfile ]; then
+        if [ $(id -u) != $(stat -f '%u' $rcfile) ]; then
+            echo "ERROR: ~/.macgowinrc is not owned by you"
+            exit 1
+        fi
+        mode=$(stat -f '%A' $rcfile)
+        case $mode in
+        *44|*40|*00)
+            . $rcfile
+            ;;
+        *)
+            echo "ERROR: ~/.macgowinrc's mode is $mode"
+            exit 1
+            ;;
+        esac
     fi
 }
 
