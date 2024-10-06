@@ -418,6 +418,7 @@ module main();
       bus_addr_t addr;
       int saved_assertion_failures;
       string opr_name;
+      reg_num_t rd, ra, rb;
 
       saved_assertion_failures = tb_assertion_failures;
 
@@ -432,27 +433,44 @@ module main();
       'hfzzz: opr_name = " CP";
       endcase
       
+      rd = ins[11:8];
+      ra = ins[7:4];
+      rb = ins[3:0];
+
       $display("tb_test_operation: %s %d:%h = %d:%h %s %d:%h %s%s%s%s",
-               opr_name, ins[11:8], dst, ins[7:4], a, opr, ins[3:0], b,
+               opr_name, rd, dst, ra, a, opr, rb, b,
                z ? "Z" : "_",  c ? "C" : "_", o ? "O" : "_",  s ? "S" : "_" );
 
       cpu_init();
       addr = 'h0000;
+      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, flags
       `cpu_mem(addr, flags);
-      `cpu_mem(addr, I_LD_RW_I(ins[11:8]));  // LD dst, beefh
-      `cpu_mem(addr, 'hbeef);
       `cpu_mem(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
-      `cpu_mem(addr, I_LD_RW_I(ins[7:4]));   // LD a
-      `cpu_mem(addr, a);
-      `cpu_mem(addr, I_LD_RW_I(ins[3:0]));   // LD b
-      `cpu_mem(addr, b);
+      if (16 < CPU_REG_WIDTH) begin
+         `cpu_mem(addr, I_LD_R_I(rd));       // LD dst, deadbeefh
+         `cpu_mem(addr, 'hbeef);
+         `cpu_mem(addr, 'hdead);
+         `cpu_mem(addr, I_LD_R_I(ra));       // LD a
+         `cpu_mem(addr, a[15:0]);
+         `cpu_mem(addr, a[CPU_REG_WIDTH-1:16]);
+         `cpu_mem(addr, I_LD_R_I(rb));       // LD b
+         `cpu_mem(addr, b[15:0]);
+         `cpu_mem(addr, b[CPU_REG_WIDTH-1:16]);
+      end else begin
+         `cpu_mem(addr, I_LD_RW_I(rd));      // LD dst, beefh
+         `cpu_mem(addr, 'hbeef);
+         `cpu_mem(addr, I_LD_RW_I(ra));      // LD a
+         `cpu_mem(addr, a);
+         `cpu_mem(addr, I_LD_RW_I(rb));      // LD b
+         `cpu_mem(addr, b);
+      end
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
       `tb_assert(regs(reg_pc) === addr);
-      `tb_assert(regs(ins[7:4]) === a);
-      `tb_assert(regs(ins[3:0]) === b);
+      `tb_assert(regs(ra) === a);
+      `tb_assert(regs(rb) === b);
 
       `cpu_mem(addr, ins);                   // three register operation
       `cpu_mem(addr, I_HALT());              // HALT
@@ -460,9 +478,13 @@ module main();
       cpu_cont();
       `tb_assert(regs(reg_pc) === addr);
       if (ins[15:12] == 'hf) begin
-         `tb_assert(regs(ins[11:8]) === 'hbeef);
+         if (16 < CPU_REG_WIDTH) begin
+            `tb_assert(regs(rd) === 'hdeadbeef);
+         end else begin
+            `tb_assert(regs(rd) === 'hbeef);
+         end
       end else begin
-         `tb_assert(regs(ins[11:8]) === dst);
+         `tb_assert(regs(rd) === dst);
       end
       `tb_assert(z == ((regs(reg_flag) & (1<<reg_flag_zero)) ? 1 : 0));   // equal zero
       `tb_assert(c == ((regs(reg_flag) & (1<<reg_flag_carry)) ? 1 : 0));  // carry / borrow
@@ -477,54 +499,111 @@ module main();
    
    task tb_test_oprations();
       tb_begin("test_operations");
-      //                instruction     flags   result  a       opr  b       z  c  o  s
-      tb_test_operation(I_ADD(0, 8, 9), 'hd000, 'hd000, 'hc000, "+", 'h1000, 0, 0, 0, 1);
-      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h1000, 'hc000, "+", 'h5000, 0, 1, 0, 0);
-      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h0000, 'hc000, "+", 'h4000, 1, 1, 0, 0);
-      tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h9000, 'h5000, "+", 'h4000, 0, 0, 1, 1);
+      if (CPU_REG_WIDTH == 16) begin
+         //                instruction     flags   result  a       opr  b       z  c  o  s
+         tb_test_operation(I_ADD(0, 8, 9), 'hd000, 'hd000, 'hc000, "+", 'h1000, 0, 0, 0, 1);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h1000, 'hc000, "+", 'h5000, 0, 1, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h0000, 'hc000, "+", 'h4000, 1, 1, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h9000, 'h5000, "+", 'h4000, 0, 0, 1, 1);
 
-      tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
-      tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
-      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
-      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
-      tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
+         tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
+         tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
 
-      tb_test_operation(I_MUL(3, 4, 5), 'h0000,     12,      3, "*",      4, 0, 0, 0, 0);
-      tb_test_operation(I_DIV(3, 4, 5), 'h0000,      8,     48, "/",      6, 0, 0, 0, 0);
+         tb_test_operation(I_MUL(3, 4, 5), 'h0000,     12,      3, "*",      4, 0, 0, 0, 0);
+         tb_test_operation(I_DIV(3, 4, 5), 'h0000,      8,     48, "/",      6, 0, 0, 0, 0);
 
-      /*
-      tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'h2234, 'h1234, "+", 'h1000, 0, 0, 0, 0);
-      tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h2235, 'h1234, "+", 'h1000, 0, 0, 0, 0);
-      tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "+", 'h8000, 0, 0, 0, 1);
-      tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h0000, 'h7fff, "+", 'h8000, 1, 1, 0, 0);
+         /*
+         tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'h2234, 'h1234, "+", 'h1000, 0, 0, 0, 0);
+         tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h2235, 'h1234, "+", 'h1000, 0, 0, 0, 0);
+         tb_test_operation(I_ADC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "+", 'h8000, 0, 0, 0, 1);
+         tb_test_operation(I_ADC(3, 4, 5), 'h0002, 'h0000, 'h7fff, "+", 'h8000, 1, 1, 0, 0);
 
-      tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'h0234, 'h1234, "-", 'h1000, 0, 0, 0, 0);
-      tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'h0233, 'h1234, "-", 'h1000, 0, 0, 0, 0);
-      tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "-", 'h8000, 0, 1, 1, 1);
-      tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'hffff, 'h7fff, "-", 'h7fff, 0, 1, 0, 1);
-       */
+         tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'h0234, 'h1234, "-", 'h1000, 0, 0, 0, 0);
+         tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'h0233, 'h1234, "-", 'h1000, 0, 0, 0, 0);
+         tb_test_operation(I_SBC(3, 4, 5), 'h0000, 'hffff, 'h7fff, "-", 'h8000, 0, 1, 1, 1);
+         tb_test_operation(I_SBC(3, 4, 5), 'h0002, 'hffff, 'h7fff, "-", 'h7fff, 0, 1, 0, 1);
+          */
 
-      tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
-      tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
-      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
-      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
-      tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
+         tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00f0, 'h0100, "-", 'h0010, 0, 0, 0, 0);
+         tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h00e0, 'h0100, "-", 'h0020, 0, 0, 0, 0);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hff00, 'h0100, "-", 'h0200, 0, 1, 0, 1);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'h0000, 'h0100, "-", 'h0100, 1, 0, 0, 0);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hd000, 'h7000, "-", 'ha000, 0, 1, 1, 1);
 
-      //                instruction     flags   result  a       opr  b       z  c  p  s
-      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0000, 'ha5a5, "&", 'h5a5a, 1, 0, 1, 0);
-      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha500, 'ha5a5, "&", 'hff00, 0, 0, 1, 1);
-      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0808, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 0);
-      tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha800, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
+         //                instruction     flags   result  a       opr  b       z  c  p  s
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0000, 'ha5a5, "&", 'h5a5a, 1, 0, 1, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha500, 'ha5a5, "&", 'hff00, 0, 0, 1, 1);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0808, 'ha8a8, "&", 'h5a5a, 0, 0, 1, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha800, 'ha8a8, "&", 'hff00, 0, 0, 0, 1);
 
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffff, 'ha5a5, "|", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa5, 'ha5a5, "|", 'hff00, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafa, 'ha8a8, "|", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa8, 'ha8a8, "|", 'hff00, 0, 0, 0, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffff, 'ha5a5, "|", 'h5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa5, 'ha5a5, "|", 'hff00, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafa, 'ha8a8, "|", 'h5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffa8, 'ha8a8, "|", 'hff00, 0, 0, 0, 1);
 
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffff, 'ha5a5, "^", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h5aa5, 'ha5a5, "^", 'hff00, 0, 0, 1, 0);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2, 'ha8a8, "^", 'h5a5a, 0, 0, 1, 1);
-      tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h57a8, 'ha8a8, "^", 'hff00, 0, 0, 1, 0);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffff, 'ha5a5, "^", 'h5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h5aa5, 'ha5a5, "^", 'hff00, 0, 0, 1, 0);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2, 'ha8a8, "^", 'h5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h57a8, 'ha8a8, "^", 'hff00, 0, 0, 1, 0);
+      end else
+      if (CPU_REG_WIDTH == 32) begin
+         //                instruction     flags   result      a           opr  b           z  c  o  s
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h0000d000, 'h0000c000, "+", 'h00001000, 0, 0, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'hd0000000, 'hc0000000, "+", 'h10000000, 0, 0, 0, 1);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h00011000, 'h0000c000, "+", 'h00005000, 0, 0, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h10000000, 'hc0000000, "+", 'h50000000, 0, 1, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h00010000, 'h0000c000, "+", 'h00004000, 0, 0, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h00000000, 'hc0000000, "+", 'h40000000, 1, 1, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h00009000, 'h00005000, "+", 'h00004000, 0, 0, 0, 0);
+         tb_test_operation(I_ADD(0, 8, 9), 'h0000, 'h90000000, 'h50000000, "+", 'h40000000, 0, 0, 1, 1);
+
+         tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h000000f0, 'h00000100, "-", 'h00000010, 0, 0, 0, 0);
+         tb_test_operation(I_SUB(1, 2, 3), 'h0000, 'h000000e0, 'h00000100, "-", 'h00000020, 0, 0, 0, 0);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hffffff00, 'h00000100, "-", 'h00000200, 0, 1, 0, 1);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'h00000000, 'h00000100, "-", 'h00000100, 1, 0, 0, 0);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hffffd000, 'h00007000, "-", 'h0000a000, 0, 1, 0, 1);
+         tb_test_operation(I_SUB(3, 4, 5), 'h0000, 'hd0000000, 'h70000000, "-", 'ha0000000, 0, 1, 1, 1);
+
+         tb_test_operation(I_MUL(3, 4, 5), 'h0000,         12,          3, "*",          4, 0, 0, 0, 0);
+         tb_test_operation(I_DIV(3, 4, 5), 'h0000,          8,         48, "/",          6, 0, 0, 0, 0);
+
+         tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h000000f0, 'h00000100, "-", 'h00000010, 0, 0, 0, 0);
+         tb_test_operation(I_CP (1, 2, 3), 'h0000, 'h000000e0, 'h00000100, "-", 'h00000020, 0, 0, 0, 0);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hffffff00, 'h00000100, "-", 'h00000200, 0, 1, 0, 1);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'h00000000, 'h00000100, "-", 'h00000100, 1, 0, 0, 0);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hffffd000, 'h00007000, "-", 'h0000a000, 0, 1, 0, 1);
+         tb_test_operation(I_CP (3, 4, 5), 'h0000, 'hd0000000, 'h70000000, "-", 'ha0000000, 0, 1, 1, 1);
+
+         //                instruction     flags   result      a           opr  b           z  c  p  s
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h00000000, 'h0000a5a5, "&", 'h00005a5a, 1, 0, 1, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0000a500, 'h0000a5a5, "&", 'h0000ff00, 0, 0, 1, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha500a500, 'ha5a5a5a5, "&", 'hff00ff00, 0, 0, 1, 1);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h00000808, 'h0000a8a8, "&", 'h00005a5a, 0, 0, 1, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'h0000a800, 'h0000a8a8, "&", 'h0000ff00, 0, 0, 0, 0);
+         tb_test_operation(I_AND(6, 1, 3), 'h0000, 'ha500a800, 'ha5a8a8a8, "&", 'hff00ff00, 0, 0, 0, 1);
+
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'h0000ffff, 'h0000a5a5, "|", 'h00005a5a, 0, 0, 1, 0);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hffffffff, 'ha5a5a5a5, "|", 'h5a5a5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'h0000ffa5, 'h0000a5a5, "|", 'h0000ff00, 0, 0, 1, 0);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'ha5ffffa5, 'ha5a5a5a5, "|", 'h00ffff00, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'h0000fafa, 'h0000a8a8, "|", 'h00005a5a, 0, 0, 1, 0);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'hfafafafa, 'ha8a8a8a8, "|", 'h5a5a5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'h0000ffa8, 'h0000a8a8, "|", 'h0000ff00, 0, 0, 0, 0);
+         tb_test_operation(I_OR (6, 1, 3), 'h0000, 'ha5ffffa8, 'ha5a5a8a8, "|", 'h00ffff00, 0, 0, 0, 1);
+
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h0000ffff, 'h0000a5a5, "^", 'h00005a5a, 0, 0, 1, 0);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hffffffff, 'ha5a5a5a5, "^", 'h5a5a5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h00005aa5, 'h0000a5a5, "^", 'h0000ff00, 0, 0, 1, 0);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h0000f2f2, 'h0000a8a8, "^", 'h00005a5a, 0, 0, 1, 0);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'hf2f2f2f2, 'ha8a8a8a8, "^", 'h5a5a5a5a, 0, 0, 1, 1);
+         tb_test_operation(I_XOR(6, 1, 3), 'h0000, 'h000057a8, 'h0000a8a8, "^", 'h0000ff00, 0, 0, 1, 0);
+      end else begin
+         // fail
+         `tb_assert(0);
+      end
 
       tb_end();
 
