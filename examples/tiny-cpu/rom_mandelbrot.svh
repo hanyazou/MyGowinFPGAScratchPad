@@ -20,7 +20,7 @@
       mem['h0810] = 'h3948;  // I_OUTB(8, 4)
       mem['h0811] = 'h0002;  // I_RET()
       mem['h0000] = 'h0170;  // I_LD_RW_I(0)
-      mem['h0001] = 'h0000;  // 'h0000
+      mem['h0001] = 'h4000;  // 'h4000
       mem['h0002] = 'h3f20;  // I_LD_R_R(reg_sp, 0)
       mem['h0003] = 'h017e;  // I_LD_RW_I(CA)
       mem['h0004] = 'hfc7f;  // CA0

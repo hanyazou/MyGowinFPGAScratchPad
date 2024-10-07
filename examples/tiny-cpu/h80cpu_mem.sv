@@ -15,7 +15,7 @@ module h80cpu_mem #(
 
    `include "h80bus.svh"
 
-   reg [15:0] mem[1024*32];  // 32K words
+   reg [15:0] mem[1024*16];  // 2 bytes x 16K words (32KB)
    reg [BUS_DATA_WIDTH-1:0] rd_data;
    int state = 0;
 

@@ -651,6 +651,9 @@ module main();
       'h01dz: ins_name = " RST";
       'h01ez: ins_name = "  JP";
       'h01fz: ins_name = "  JR";
+      'h034z: ins_name = " JPZ";
+      'h038z: ins_name = "JRNZ";
+      'h03cz: ins_name = " JRZ";
       endcase
 
       $display("test_jump: %s %h", ins_name, jump_addr);
@@ -659,13 +662,13 @@ module main();
 
       addr = 'h0000;                          // start address (reset address)
       `cpu_mem(addr, I_LD_RW_I(0));          // set stack pointer
-      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, 'h4000);
       `cpu_mem(addr, I_LD_R_R(reg_sp, 0));
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 8000h + 8h
-      `cpu_mem(addr, 'h8000 - 8);
-      `cpu_mem(addr, I_JP_R(0));             // jump to 8000h + 8h
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 1000h + 8h
+      `cpu_mem(addr, 'h1000 - 8);
+      `cpu_mem(addr, I_JP_R(0));             // jump to 1000h + 8h
 
-      addr = 'h8000 - 8;
+      addr = 'h1000 - 8;
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
@@ -737,28 +740,28 @@ module main();
 
       // JP (R)
       tb_test_jump(I_NOP(),     I_JP_R(0),      'h2000, 'h2000);
-      tb_test_jump(I_NOP(),     I_JP_R(0),      'ha000, 'ha000);
+      tb_test_jump(I_NOP(),     I_JP_R(0),      'h3000, 'h3000);
 
       // JR (R)
-      tb_test_jump(I_NOP(),     I_JR_R(0),      'h1000, 'h9000);
-      tb_test_jump(I_NOP(),     I_JR_R(0),      'hf000, 'h7000);
+      tb_test_jump(I_NOP(),     I_JR_R(0),      'h1000, 'h2000);
+      tb_test_jump(I_NOP(),     I_JR_R(0),      'hff00, 'h0f00);
 
       // JP cc, (R)
       tb_test_jump(I_CLRF(0),   I_JP_Z(0),      'h2000);
       tb_test_jump(I_SETF(0),   I_JP_Z(0),      'h2000, 'h2000);
-      tb_test_jump(I_CLRF(0),   I_JP_Z(0),      'ha000);
-      tb_test_jump(I_SETF(0),   I_JP_Z(0),      'ha000, 'ha000);
+      tb_test_jump(I_CLRF(0),   I_JP_Z(0),      'h3000);
+      tb_test_jump(I_SETF(0),   I_JP_Z(0),      'h3000, 'h3000);
 
       // JR cc, (R)
       tb_test_jump(I_CLRF(0),   I_JR_Z(0),      'h1000);
-      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'h1000, 'h9000);
-      tb_test_jump(I_CLRF(0),   I_JR_Z(0),      'hf000);
-      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'hf000, 'h7000);
+      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'h1000, 'h2000);
+      tb_test_jump(I_CLRF(0),   I_JR_Z(0),      'hff00);
+      tb_test_jump(I_SETF(0),   I_JR_Z(0),      'hff00, 'h0f00);
 
       tb_test_jump(I_SETF(0),   I_JR_NZ(0),     'h1000);
-      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'h1000, 'h9000);
-      tb_test_jump(I_SETF(0),   I_JR_NZ(0),     'hf000);
-      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'hf000, 'h7000);
+      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'h1000, 'h2000);
+      tb_test_jump(I_SETF(0),   I_JR_NZ(0),     'hff00);
+      tb_test_jump(I_CLRF(0),   I_JR_NZ(0),     'hff00, 'h0f00);
 
       tb_end();
    endtask // tb_test_jumps
@@ -869,8 +872,8 @@ module main();
       // main routine
       //
       addr = 'h0000;
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 0000h
-      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 4000h
+      `cpu_mem(addr, 'h4000);
       `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, r0
       `cpu_mem(addr, I_LD_RW_I(CA));         // CA = CA0
       `cpu_mem(addr, CA0);
