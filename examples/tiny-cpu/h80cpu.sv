@@ -95,8 +95,24 @@ module h80cpu #(
 
    always @(posedge clk) begin
       if (reset) begin
-         regs[reg_pc] <= 'h0000;
-         regs[reg_flag] <= 'h0000;
+         regs[0] <= reg_t'(0);
+         regs[1] <= reg_t'(0);
+         regs[2] <= reg_t'(0);
+         regs[3] <= reg_t'(0);
+         regs[4] <= reg_t'(0);
+         regs[5] <= reg_t'(0);
+         regs[6] <= reg_t'(0);
+         regs[7] <= reg_t'(0);
+         regs[8] <= reg_t'(0);
+         regs[9] <= reg_t'(0);
+         regs[10] <= reg_t'(0);
+         regs[11] <= reg_t'(0);
+         regs[12] <= reg_t'(0);
+         regs[13] <= reg_t'(0);
+         regs[14] <= reg_t'(0);
+         regs[15] <= reg_t'(0);
+         regs[reg_pc] <= reg_t'(0);
+         regs[reg_flag] <= reg_t'(0);
          state <= S_FETCH_EXEC;
 
          // fetch first instruction
