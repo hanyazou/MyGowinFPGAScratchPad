@@ -689,11 +689,11 @@ module main();
       `cpu_mem(addr, I_LD_RW_I(0));          // set stack pointer
       `cpu_mem(addr, 'h4000);
       `cpu_mem(addr, I_LD_R_R(reg_sp, 0));
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 1000h + 8h
-      `cpu_mem(addr, 'h1000 - 8);
-      `cpu_mem(addr, I_JP_R(0));             // jump to 1000h + 8h
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 1000h - 10
+      `cpu_mem(addr, 'h1000 - 10);
+      `cpu_mem(addr, I_JP_R(0));             // jump to 1000h - 10
 
-      addr = 'h1000 - 8;
+      addr = 'h1000 - 10;
       `cpu_mem(addr, I_HALT());              // HALT
 
       cpu_run();
@@ -710,6 +710,11 @@ module main();
 
       `cpu_mem(addr, I_LD_RW_I(jump_ins[3:0])); // load jump addr
       `cpu_mem(addr, jump_addr);
+      if (16 < CPU_REG_WIDTH) begin
+         `cpu_mem(addr, I_EXTN_RW(jump_ins[3:0]));
+      end else begin
+         `cpu_mem(addr, I_NOP());
+      end
       `cpu_mem(addr, jump_flag_ins);         // set / clear flag
       `cpu_mem(addr, jump_ins);              // jump
       `cpu_mem(addr, I_HALT());              // HALT
