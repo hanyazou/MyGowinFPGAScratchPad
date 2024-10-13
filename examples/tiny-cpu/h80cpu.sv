@@ -25,6 +25,10 @@ module h80cpu #(
    bus_cmd_t bus_cmd;
    bus_data_t bus_wr_data;
    reg_num_t bus_rd_reg;
+   reg [1:0] bus_rd_extend_mode;
+   localparam bus_rd_extend_none = 2'b00;
+   localparam bus_rd_extend_signed = 2'b01;
+   localparam bus_rd_extend_unsigned = 2'b10;
 
    enum { S_FETCH_EXEC, S_BUS_RW } state;
    int next_ins_addr;
@@ -140,6 +144,7 @@ module h80cpu #(
          end
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
             bus_rd_reg <= reg_pc;
+            bus_rd_extend_mode <= bus_rd_extend_none;
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
             regs[reg_sp] <= regs[reg_sp] + 2;
             do_memory_access = 1;
@@ -153,10 +158,20 @@ module h80cpu #(
             if ((ins[2] == 1'b0 && !regs[reg_flag][ins[1:0]]) ||
                 (ins[2] == 1'b1 && regs[reg_flag][ins[1:0]])) begin
                bus_rd_reg <= reg_pc;
+               bus_rd_extend_mode <= bus_rd_extend_none;
                bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
                regs[reg_sp] <= regs[reg_sp] + 2;
                do_memory_access = 1;
             end
+         end
+         // 0000_0000_1000_1000 to 1110_1111 reserved
+
+         16'b0000_0000_1111_zzzz: begin  //  0 0000_1111_rrrr LD R, nnnnnnnn
+            bus_rd_reg <= ins[3:0];
+            bus_rd_extend_mode <= bus_rd_extend_none;
+            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_pc] + 2);
+            next_ins_addr = regs[reg_pc] + 6;
+            do_memory_access = 1;
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
             bus_wr_data <= regs[ins[3:0]];
@@ -166,6 +181,7 @@ module h80cpu #(
          end
          16'b0000_0001_0001_zzzz: begin  //  0 0001_0001_rrrr POP R
             bus_rd_reg <= ins[3:0];
+            bus_rd_extend_mode <= bus_rd_extend_none;
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
             regs[reg_sp] <= regs[reg_sp] + 2;
             do_memory_access = 1;
@@ -198,14 +214,13 @@ module h80cpu #(
          16'b0000_0001_0101_zzzz: begin  //  0 0001_0101_rrrr NEG R (negate R, two's complement)
             regs[ins[3:0]] <= ~regs[ins[3:0]] + 1;
          end
-         16'b0000_0001_0110_zzzz: begin  //  0 0001_0110_rrrr LD R, nnnnnnnn
+         16'b0000_0001_0110_zzzz,
+         16'b0000_0001_0111_zzzz: begin  //  0 0001_011z_rrrr LD R, nnnn
             bus_rd_reg <= ins[3:0];
-            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_pc] + 2);
-            next_ins_addr = regs[reg_pc] + 6;
-            do_memory_access = 1;
-         end
-         16'b0000_0001_0111_zzzz: begin  //  0 0001_0111_rrrr LD R, nnnn
-            bus_rd_reg <= ins[3:0];
+            if (ins[4])
+               bus_rd_extend_mode <= bus_rd_extend_signed;
+            else
+               bus_rd_extend_mode <= bus_rd_extend_unsigned;
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_pc] + 2);
             next_ins_addr = regs[reg_pc] + 4;
             do_memory_access = 1;
@@ -316,11 +331,15 @@ module h80cpu #(
          //  0 1110_aaaa_bbbb reserved 空き
          //  0 1111_aaaa_bbbb reserved 空き
 
-         16'b0001_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-            `register(ins[11:8], regs[ins[11:8]] & 'hff00 | (ins & 'hff));
+         16'b0001_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D] = n
+            `register(ins[11:8], { { CPU_REG_WIDTH - 8 {1'b0}}, ins[7:0] });
          end
-         16'b0010_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-            `register(ins[11:8], regs[ins[11:8]] & 'h00ff | (ins & 'hff) << 8);
+         16'b0010_zzzz_zzzz_zzzz: begin  //  1 dddd_nnnn_nnnn  reg[D] = n (sign extended)
+            if (ins[7] == 0) begin
+               `register(ins[11:8], { { CPU_REG_WIDTH - 8 {1'b0}}, ins[7:0] });
+            end else begin
+               `register(ins[11:8], { { CPU_REG_WIDTH - 8 {1'b1}}, ins[7:0] });
+            end
          end
 
          //
@@ -332,6 +351,7 @@ module h80cpu #(
          16'b0011_10zz_zzzz_zzzz:  begin
             bus_wr_data <= regs[ins[7:4]];
             bus_rd_reg <= ins[7:4];
+            bus_rd_extend_mode <= bus_rd_extend_none;
             bus_run_cmd(bus(ins[8]), ins[11:9], regs[ins[3:0]]);
             do_memory_access = 1;
          end
@@ -423,13 +443,25 @@ module h80cpu #(
          end
          if (bus_cmd == bus_cmd_read_w) begin
             if (16 < BUS_DATA_WIDTH && 16 < CPU_REG_WIDTH) begin
-              regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:16], bus_data_[15:0] };
+               if (bus_rd_extend_mode == bus_rd_extend_none)
+                 regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:16], bus_data_[15:0] };
+               else
+               if (bus_rd_extend_mode == bus_rd_extend_signed)
+                 regs[bus_rd_reg] <= { { CPU_REG_WIDTH-16 {bus_data_[15]} }, bus_data_[15:0] };
+               else
+                 regs[bus_rd_reg] <= { { CPU_REG_WIDTH-16 {1'b0} }, bus_data_[15:0] };
             end else begin
               regs[bus_rd_reg] <= bus_data_[BUS_DATA_WIDTH-1:0];
             end
          end
          if (bus_cmd == bus_cmd_read_b) begin
-            regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:8], bus_data_[7:0] };
+            if (bus_rd_extend_mode == bus_rd_extend_none)
+              regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:8], bus_data_[7:0] };
+            else
+            if (bus_rd_extend_mode == bus_rd_extend_signed)
+              regs[bus_rd_reg] <= { { CPU_REG_WIDTH-8 {bus_data_[7]} }, bus_data_[7:0] };
+            else
+              regs[bus_rd_reg] <= { { CPU_REG_WIDTH-8 {1'b0} }, bus_data_[7:0] };
          end
          if (bus_rd_reg == reg_pc) begin
             start_instruction_fetch(bus_data_);

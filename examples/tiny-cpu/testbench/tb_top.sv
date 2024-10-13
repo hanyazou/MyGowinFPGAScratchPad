@@ -10,34 +10,31 @@ module main();
       tb_begin("test00");
       cpu_init();
 
-      mem_write('h0000, I_LD_RL_I(0, 'h04));  // LD r0.l, 04h
-      mem_write('h0002, I_LD_RH_I(0, 'h00));  // LD r0.h, 00h
-      mem_write('h0004, I_LD_RL_I(1, 'h01));  // LD r1.l, 01h
-      mem_write('h0006, I_LD_RH_I(1, 'h00));  // LD r1.h, 00h
-      mem_write('h0008, I_LD_RL_I(2, 'h12));  // LD r2.l, 12h
-      mem_write('h000a, I_LD_RH_I(2, 'h00));  // LD r2.h, 00h
-      mem_write('h000c, I_LD_RL_I(3, 'h00));  // LD r3.l, 00h
-      mem_write('h000e, I_LD_RH_I(3, 'h20));  // LD r3.h, 20h
-      mem_write('h0010, I_HALT());            // HALT
-
-      mem_write('h0012, I_SUB(0, 0, 1));      // SUB r0, r0, r1
-      mem_write('h0014, I_LD_M_RW(3, 0));     // LD (r3), r0.w
-      mem_write('h0016, I_LD_M_RB(3, 0));     // LD (r3), r0.b
-      mem_write('h0018, I_LD_RL_I(0, 'hff));  // LD r0.l, FFh
-      mem_write('h001a, I_LD_RW_M(0, 3));     // LD r0.w, (r3)
-      mem_write('h001c, I_LD_RB_M(0, 3));     // LD r0.b, (r3)
-      mem_write('h001e, I_JP_NZ(2));          // JP NZ, (r2)
-      mem_write('h0020, I_HALT());            // HALT
+      mem_write('h0000, I_LD_RB_I(0, 'h04));  // LD r0, 04h
+      mem_write('h0002, I_LD_RB_I(1, 'h01));  // LD r1, 01h
+      mem_write('h0004, I_LD_RB_I(2, 'h0c));  // LD r2, 0ch
+      mem_write('h0006, I_LD_RW_I(3));        // LD r3, 2000h
+      mem_write('h0008, 16'h2000);
+      mem_write('h000a, I_HALT());            // HALT
 
       cpu_run();
-      `tb_assert(regs(reg_pc) === 'h0012);
+      `tb_assert(regs(reg_pc) === 'h000c);
       `tb_assert(regs(0) === 'h0004);
       `tb_assert(regs(1) === 'h0001);
-      `tb_assert(regs(2) === 'h0012);
+      `tb_assert(regs(2) === 'h000c);
       `tb_assert(regs(3) === 'h2000);
 
+      mem_write('h000c, I_SUB(0, 0, 1));      // SUB r0, r0, r1
+      mem_write('h000e, I_LD_M_RW(3, 0));     // LD (r3), r0.w
+      mem_write('h0010, I_LD_M_RB(3, 0));     // LD (r3), r0.b
+      mem_write('h0012, I_LD_RB_I(0, 'hff));  // LD r0, 00FFh
+      mem_write('h0014, I_LD_RW_M(0, 3));     // LD r0.w, (r3)
+      mem_write('h0016, I_LD_RB_M(0, 3));     // LD r0.b, (r3)
+      mem_write('h0018, I_JP_NZ(2));          // JP NZ, (r2)
+      mem_write('h001a, I_HALT());            // HALT
+
       cpu_cont();
-      `tb_assert(regs(reg_pc) === 'h0022);
+      `tb_assert(regs(reg_pc) === 'h001c);
       `tb_assert(regs(0) === 'h0000);
       mem_read(bus_addr_t'('h2000), data);
       `tb_assert(data === 'h0000);
@@ -495,7 +492,6 @@ module main();
 
       cpu_init();
       addr = 'h0000;
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, flags
       `cpu_mem(addr, flags);
       `cpu_mem(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
@@ -708,13 +704,9 @@ module main();
          not_return_addr = addr;
       end
 
-      `cpu_mem(addr, I_LD_RW_I(jump_ins[3:0])); // load jump addr
+      `cpu_mem(addr, I_LD_RW_SI(jump_ins[3:0]));// load jump addr
       `cpu_mem(addr, jump_addr);
-      if (16 < CPU_REG_WIDTH) begin
-         `cpu_mem(addr, I_EXTN_RW(jump_ins[3:0]));
-      end else begin
-         `cpu_mem(addr, I_NOP());
-      end
+      `cpu_mem(addr, I_NOP());
       `cpu_mem(addr, jump_flag_ins);         // set / clear flag
       `cpu_mem(addr, jump_ins);              // jump
       `cpu_mem(addr, I_HALT());              // HALT
@@ -815,18 +807,14 @@ module main();
       mem_write(addr, { 8'h00, 8'h0a }); addr += 2;
 
       addr = 'h0000;                         // start address (reset address)
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // XOR r0, r0, r0
       `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, message
       `cpu_mem(addr, 'h1000);
       `cpu_mem(addr, I_LD_RW_I(2));          // UART TX
       `cpu_mem(addr, 'h0000);
       `cpu_mem(addr, I_LD_RW_I(3));          // LD r3, 6
       `cpu_mem(addr, 6);
-      `cpu_mem(addr, I_LD_RW_I(4));          // LD r4, -10
+      `cpu_mem(addr, I_LD_RW_SI(4));         // LD r4, -10
       `cpu_mem(addr, -10);
-      if (16 < CPU_REG_WIDTH) begin
-         `cpu_mem(addr, I_EXTN_RW(4));
-      end
 
       // LOOP:
       `cpu_mem(addr, I_LD_RB_M(0, 1));       // LD r0.b, (r1)
@@ -892,7 +880,6 @@ module main();
 
       // put_pixel(I)
       label_put_pixel = addr;
-      `cpu_mem(addr, I_XOR(8, 8, 8));        // clear r8
       `cpu_mem(addr, I_LD_RW_I(8));          // LD r8, 10
       `cpu_mem(addr, 10);
       `cpu_mem(addr, I_CP(4, 4, 8));         // r4(I) - r8(9)
@@ -915,24 +902,20 @@ module main();
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, 4000h
       `cpu_mem(addr, 'h4000);
       `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, r0
-      `cpu_mem(addr, I_LD_RW_I(CB));         // CB = CB0
+      `cpu_mem(addr, I_LD_RW_SI(CB));        // CB = CB0
       `cpu_mem(addr, CB0);
-      `cpu_mem(addr, I_EXTN_RW(CB));
 
-      `cpu_mem(addr, I_LD_RW_I(Y));         // Y = HEIGHT + 1
+      `cpu_mem(addr, I_LD_RW_SI(Y));        // Y = HEIGHT + 1
       `cpu_mem(addr, HEIGHT);
-      `cpu_mem(addr, I_EXTN_RW(Y));
       `cpu_mem(addr, I_ADD_R_I(Y, 1));
 
       label_loop_y = addr;
 
-      `cpu_mem(addr, I_LD_RW_I(CA));         // CA = CA0
+      `cpu_mem(addr, I_LD_RW_SI(CA));        // CA = CA0
       `cpu_mem(addr, CA0);
-      `cpu_mem(addr, I_EXTN_RW(CA));
 
-      `cpu_mem(addr, I_LD_RW_I(X));          // X = WIDTH + 1
+      `cpu_mem(addr, I_LD_RW_SI(X));          // X = WIDTH + 1
       `cpu_mem(addr, WIDTH);
-      `cpu_mem(addr, I_EXTN_RW(X));
       `cpu_mem(addr, I_ADD_R_I(X, 1));
 
       label_loop_x = addr;
@@ -945,14 +928,12 @@ module main();
       label_loop_i = addr;
       `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
       `cpu_mem(addr, I_LD_R_R(5, A));        // arg1 = A
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
       `cpu_mem(addr, label_fp_mul);
       `cpu_mem(addr, I_CALL_R(0));           // r2 = A * A
       `cpu_mem(addr, I_LD_R_R(T, 2));        // T = A * A
       `cpu_mem(addr, I_LD_R_R(4, B));        // arg0 = B
       `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
       `cpu_mem(addr, label_fp_mul);
       `cpu_mem(addr, I_CALL_R(0));           // r2 = B * B
@@ -961,7 +942,6 @@ module main();
 
       `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
       `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
       `cpu_mem(addr, label_fp_mul);
       `cpu_mem(addr, I_CALL_R(0));           // r2 = A * B
@@ -971,38 +951,31 @@ module main();
 
       `cpu_mem(addr, I_LD_R_R(4, A));        // arg0 = A
       `cpu_mem(addr, I_LD_R_R(5, A));        // arg1 = A
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
       `cpu_mem(addr, label_fp_mul);
       `cpu_mem(addr, I_CALL_R(0));           // r2 = A * A
       `cpu_mem(addr, I_LD_R_R(T, 2));        // T = A * A
       `cpu_mem(addr, I_LD_R_R(4, B));        // arg0 = B
       `cpu_mem(addr, I_LD_R_R(5, B));        // arg1 = B
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_fp_mul
       `cpu_mem(addr, label_fp_mul);
       `cpu_mem(addr, I_CALL_R(0));           // r2 = B * B
       `cpu_mem(addr, I_ADD(T, T, 2));        // T = A * A + B * B
 
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // r0 = 4.0
       `cpu_mem(addr, FP4_0);
 
-      `cpu_mem(addr, I_XOR(1, 1, 1));        // clear r1
-      `cpu_mem(addr, I_LD_RW_I(1));          // r1 = 20
-      `cpu_mem(addr, 20);
-      `cpu_mem(addr, I_EXTN_RW(1));
+      `cpu_mem(addr, I_LD_RW_I(1));          // r1 = 16
+      `cpu_mem(addr, 16);
 
       `cpu_mem(addr, I_CP(T, 0, T));         // 4.0 - (A * A + B * B)
       `cpu_mem(addr, I_JR_NC(1));            // jump +20 if A * A + B * B <= 4.0
 
       `cpu_mem(addr, I_LD_R_R(4, I));        // arg0 = I
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_put_pixel
       `cpu_mem(addr, label_put_pixel);
       `cpu_mem(addr, I_CALL_R(0));           // CALL label_put_pixel
 
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // r0 = address to exit from variable I loop
       label_exit_loop_i = addr;              // this word will be set later
       addr += 2;
@@ -1011,17 +984,14 @@ module main();
       `cpu_mem(addr, I_ADD_R_I(I, 1));       // I++
       `cpu_mem(addr, I_LD_RW_I(0));          // r0 = 16
       `cpu_mem(addr, 16);
-      `cpu_mem(addr, I_EXTN_RW(0));
-      `cpu_mem(addr, I_XOR(1, 1, 1));        // clear r1
       `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, label_loop_i
       `cpu_mem(addr, label_loop_i);
 
       `cpu_mem(addr, I_CP(I, I, 0));         // I - 16
       `cpu_mem(addr, I_JP_C(1));             // JP C, label_loop_i if I < 16
-      `cpu_mem(addr, I_XOR(1, 1, 1));        // clear r1
       `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, 'h0000  output port
       `cpu_mem(addr, 'h0000);
-      `cpu_mem(addr, I_LD_RL_I(0, 'h20));    // LD r0, 'h20
+      `cpu_mem(addr, I_LD_RB_I(0, 'h20));    // LD r0, 'h20
       `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h20
 
       // break from var I loop
@@ -1029,29 +999,24 @@ module main();
 
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, FP0_0458
       `cpu_mem(addr, FP0_0458);
-      `cpu_mem(addr, I_EXTN_RW(0));
       `cpu_mem(addr, I_ADD(CA, CA, 0));      // CA += 0.0458
 
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_loop_x
       `cpu_mem(addr, label_loop_x);
       `cpu_mem(addr, I_SUB_R_I(X, 1));       // X--
       `cpu_mem(addr, I_JP_NZ(0));            // jump to label_loop_x if 0 < X
 
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, FP0_0833
+      `cpu_mem(addr, I_LD_RW_SI(0));         // LD r0, FP0_0833
       `cpu_mem(addr, FP0_0833);
-      `cpu_mem(addr, I_EXTN_RW(0));
       `cpu_mem(addr, I_ADD(CB, CB, 0));      // CB += 0.0833
 
-      `cpu_mem(addr, I_XOR(1, 1, 1));        // clear r1
       `cpu_mem(addr, I_LD_RW_I(1));          // LD r1, 'h0000  output port
       `cpu_mem(addr, 'h0000);
-      `cpu_mem(addr, I_LD_RL_I(0, 'h0d));    // LD r0, 'h0d
+      `cpu_mem(addr, I_LD_RB_I(0, 'h0d));    // LD r0, 'h0d
       `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h0d
-      `cpu_mem(addr, I_LD_RL_I(0, 'h0a));    // LD r0, 'h0a
+      `cpu_mem(addr, I_LD_RB_I(0, 'h0a));    // LD r0, 'h0a
       `cpu_mem(addr, I_OUTB(1, 0));          // OUT ('h0000), 'h0d
 
-      `cpu_mem(addr, I_XOR(0, 0, 0));        // clear r0
       `cpu_mem(addr, I_LD_RW_I(0));          // LD r0, label_loop_y
       `cpu_mem(addr, label_loop_y);
       `cpu_mem(addr, I_SUB_R_I(Y, 1));       // Y--

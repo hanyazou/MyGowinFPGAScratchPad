@@ -1,40 +1,35 @@
    `include "h80cpu.svh"
    `include "h80cpu_instmacros.svh"
    initial begin
-      mem['h0000] = I_LD_RL_I(0, 'h04);  // LD r0.l, 04h
-      mem['h0001] = I_LD_RH_I(0, 'h00);  // LD r0.h, 00h
-      mem['h0002] = I_LD_RL_I(1, 'h01);  // LD r1.l, 01h
-      mem['h0003] = I_LD_RH_I(1, 'h00);  // LD r1.h, 00h
-      mem['h0004] = I_LD_RL_I(2, 'h10);  // LD r2.l, 10h  LOOP0
-      mem['h0005] = I_LD_RH_I(2, 'h00);  // LD r2.h, 00h
-      mem['h0006] = I_LD_RL_I(3, 'h00);  // LD r3.l, 00h  work area
-      mem['h0007] = I_LD_RH_I(3, 'h20);  // LD r3.h, 20h
+      mem['h0000] = I_LD_RB_I(0, 'h04);  // LD r0, 04h
+      mem['h0001] = I_LD_RB_I(1, 'h01);  // LD r1, 01h
+      mem['h0002] = I_LD_RB_I(2, 'h0a);  // LD r2, 0ah  LOOP0
+      mem['h0003] = I_LD_RW_I(3);        // LD r, 2000h  work area
+      mem['h0004] = 'h2000;
 
       // LOOP0
-      mem['h0008] = I_SUB(0, 0, 1);      // SUB r0, r0, r1
-      mem['h0009] = I_LD_M_RW(3, 0);     // LD (r3), r0.w
-      mem['h000a] = I_LD_M_RB(3, 0);     // LD (r3), r0.b
-      mem['h000b] = I_LD_RL_I(0, 'hff);  // LD r0.l, FFh
-      mem['h000c] = I_LD_RW_M(0, 3);     // LD r0.w, (r3)
-      mem['h000d] = I_LD_RB_M(0, 3);     // LD r0.b, (r3)
-      mem['h000e] = I_JP_NZ(2);          // JP NZ, (r2)
-      mem['h000f] = I_NOP();             // NOP
+      mem['h0005] = I_SUB(0, 0, 1);      // SUB r0, r0, r1
+      mem['h0006] = I_LD_M_RW(3, 0);     // LD (r3), r0.w
+      mem['h0007] = I_LD_M_RB(3, 0);     // LD (r3), r0.b
+      mem['h0008] = I_LD_RB_I(0, 'hff);  // LD r0, FFh
+      mem['h0009] = I_LD_RW_M(0, 3);     // LD.W r0, (r3)
+      mem['h000a] = I_LD_RB_M(0, 3);     // LD r0, (r3)
+      mem['h000b] = I_JP_NZ(2);          // JP NZ, (r2)
+      mem['h000c] = I_NOP();             // NOP
 
-      mem['h0010] = I_LD_RL_I(2, 'h2c);  // LD r2.l, 2ch  LOOP1
-      mem['h0011] = I_LD_RH_I(2, 'h00);  // LD r2.h, 00h
-      mem['h0012] = I_LD_RL_I(3, 'h20);  // LD r3.l, 20h  message
-      mem['h0013] = I_LD_RH_I(3, 'h20);  // LD r3.h, 20h
-      mem['h0014] = I_LD_RL_I(4, 'h00);  // LD r4.l, 00h  UART TX
-      mem['h0015] = I_LD_RH_I(4, 'h00);  // LD r4.h, 00h
+      mem['h000d] = I_LD_RB_I(2, 'h22);  // LD r2, 2ch  LOOP1
+      mem['h000e] = I_LD_RW_I(3);        // LD r3, 2020h  message
+      mem['h000f] = 'h2020;
+      mem['h0010] = I_LD_RB_I(4, 'h00);  // LD r4, 0000h  UART TX
 
       // LOOP1
-      mem['h0016] = I_LD_RB_M(0, 3);     // LD r0.l, (r3)
-      mem['h0017] = I_OUTB(4, 0);        // OUTB (r4), r0
-      mem['h0018] = I_ADD(3, 3, 1);      // ADD r3, r3, r1  r3 = r3 + 1
-      mem['h0019] = I_ADD(0, 0, 0);      // ADD r0, r0, r0  r0 == 0 ?
-      mem['h001a] = I_JP_NZ(2);          // JP NZ, (r2)
+      mem['h0011] = I_LD_RB_M(0, 3);     // LD r0.l, (r3)
+      mem['h0012] = I_OUTB(4, 0);        // OUTB (r4), r0
+      mem['h0013] = I_ADD(3, 3, 1);      // ADD r3, r3, r1  r3 = r3 + 1
+      mem['h0014] = I_ADD(0, 0, 0);      // ADD r0, r0, r0  r0 == 0 ?
+      mem['h0015] = I_JP_NZ(2);          // JP NZ, (r2)
 
-      mem['h001b] = I_HALT();            // HALT
+      mem['h0016] = I_HALT();            // HALT
 
       mem['h1000] = 'h0000;              // work area
       mem['h1010] = { "e", "H" };        // message

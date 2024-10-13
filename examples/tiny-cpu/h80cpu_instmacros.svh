@@ -8,7 +8,8 @@ function ins_t I_RET_N_(flag_num_t f);  return { 4'h0, 8'b0000_1000, 2'b00, f[1:
 function ins_t I_RET_NZ;                return I_RET_N_(reg_flag_zero); endfunction
 function ins_t I_RET_(flag_num_t f);    return { 4'h0, 8'b0000_1000, 2'b01, f[1:0] }; endfunction
 function ins_t I_RET_Z;                 return I_RET_(reg_flag_zero); endfunction
-// 0000_0000_1000_1000 to 1111_1111 reserved
+// 0000_0000_1000_1000 to 1110_1111 reserved
+function ins_t I_LD_R_I(reg_num_t r);   return { 4'h0, 8'b0000_1111, r[3:0] }; endfunction
 
 function ins_t I_PUSH_R(reg_num_t r);   return { 4'h0, 8'b0001_0000, r[3:0] }; endfunction
 function ins_t I_POP_R(reg_num_t r);    return { 4'h0, 8'b0001_0001, r[3:0] }; endfunction
@@ -17,8 +18,8 @@ function ins_t I_EXTN_RB(reg_num_t r);  return { 4'h0, 8'b0001_0011, r[3:0] }; e
 
 function ins_t I_CPL_R(reg_num_t r);    return { 4'h0, 8'b0001_0100, r[3:0] }; endfunction
 function ins_t I_NEG_R(reg_num_t r);    return { 4'h0, 8'b0001_0101, r[3:0] }; endfunction
-function ins_t I_LD_R_I(reg_num_t r);   return { 4'h0, 8'b0001_0110, r[3:0] }; endfunction
-function ins_t I_LD_RW_I(reg_num_t r);  return { 4'h0, 8'b0001_0111, r[3:0] }; endfunction
+function ins_t I_LD_RW_I(reg_num_t r);  return { 4'h0, 8'b0001_0110, r[3:0] }; endfunction
+function ins_t I_LD_RW_SI(reg_num_t r); return { 4'h0, 8'b0001_0111, r[3:0] }; endfunction
 
 function ins_t I_INVF(flag_num_t f);    return { 4'h0, 8'b0001_1000, f[3:0] }; endfunction
 function ins_t I_SETF(flag_num_t f);    return { 4'h0, 8'b0001_1001, f[3:0] }; endfunction
@@ -113,13 +114,13 @@ endfunction
 //  0 1110_aaaa_bbbb reserved 空き
 //  0 1111_aaaa_bbbb reserved 空き
 
-//  1 dddd_nnnn_nnnn  reg[D][7:0] = n
-function [15:0] I_LD_RL_I(reg_num_t r, int i);
+//  1 dddd_nnnn_nnnn  reg[D] = n
+function [15:0] I_LD_RB_I(reg_num_t r, int i);
    return { 4'h1, r[3:0], i[7:0]};
 endfunction
 
-//  2 dddd_nnnn_nnnn  reg[D][15:8] = 8'hzz
-function [15:0] I_LD_RH_I(reg_num_t r, int i);
+//  2 dddd_nnnn_nnnn  reg[D] = n (sign extended)
+function [15:0] I_LD_RB_SI(reg_num_t r, int i);
    return { 4'h2, r[3:0], i[7:0]};
 endfunction
 
