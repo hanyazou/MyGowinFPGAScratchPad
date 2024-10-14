@@ -43,6 +43,291 @@ module main();
 
    endtask // tb_test00
 
+   task tb_test_dump_inst();
+      bus_addr_t addr;
+
+      tb_begin("test_dump_inst");
+
+      cpu_init();
+
+      addr = 'h0000;
+      `cpu_mem(addr, I_NOP());
+      `cpu_mem(addr, I_HALT());
+      `cpu_mem(addr, I_RET());
+      // 0000_0000_0000_0011 to 0111_1110 reserved
+      `cpu_mem(addr, I_INV());
+      `cpu_mem(addr, I_RET_N_(reg_flag_zero));
+      `cpu_mem(addr, I_RET_N_(reg_flag_carry));
+      `cpu_mem(addr, I_RET_N_(reg_flag_overflow));
+      `cpu_mem(addr, I_RET_N_(reg_flag_parity));
+      `cpu_mem(addr, I_RET_N_(reg_flag_sign));
+      `cpu_mem(addr, I_RET_(reg_flag_zero));
+      `cpu_mem(addr, I_RET_(reg_flag_carry));
+      `cpu_mem(addr, I_RET_(reg_flag_overflow));
+      `cpu_mem(addr, I_RET_(reg_flag_parity));
+      `cpu_mem(addr, I_RET_(reg_flag_sign));
+      // 0000_0000_1000_1000 to 1110_1111 reserved
+      `cpu_mem(addr, I_LD_R_I(0));
+      `cpu_mem(addr, 16'h3210);
+      `cpu_mem(addr, 16'h7654);
+      `cpu_mem(addr, I_LD_R_I(5));
+      `cpu_mem(addr, 16'hba98);
+      `cpu_mem(addr, 16'hfedc);
+      `cpu_mem(addr, I_LD_R_I(10));
+      `cpu_mem(addr, 16'h1032);
+      `cpu_mem(addr, 16'h5476);
+      `cpu_mem(addr, I_LD_R_I(15));
+      `cpu_mem(addr, 16'h98ba);
+      `cpu_mem(addr, 16'hdcfe);
+      `cpu_mem(addr, I_PUSH_R(0));
+      `cpu_mem(addr, I_PUSH_R(5));
+      `cpu_mem(addr, I_PUSH_R(10));
+      `cpu_mem(addr, I_PUSH_R(15));
+      `cpu_mem(addr, I_POP_R(0));
+      `cpu_mem(addr, I_POP_R(5));
+      `cpu_mem(addr, I_POP_R(10));
+      `cpu_mem(addr, I_POP_R(15));
+      `cpu_mem(addr, I_EXTN_RW(0));
+      `cpu_mem(addr, I_EXTN_RW(5));
+      `cpu_mem(addr, I_EXTN_RW(10));
+      `cpu_mem(addr, I_EXTN_RW(15));
+      `cpu_mem(addr, I_EXTN_RB(0));
+      `cpu_mem(addr, I_EXTN_RB(5));
+      `cpu_mem(addr, I_EXTN_RB(10));
+      `cpu_mem(addr, I_EXTN_RB(15));
+      `cpu_mem(addr, I_CPL_R(0));
+      `cpu_mem(addr, I_CPL_R(5));
+      `cpu_mem(addr, I_CPL_R(10));
+      `cpu_mem(addr, I_CPL_R(15));
+      `cpu_mem(addr, I_NEG_R(0));
+      `cpu_mem(addr, I_NEG_R(5));
+      `cpu_mem(addr, I_NEG_R(10));
+      `cpu_mem(addr, I_NEG_R(15));
+      `cpu_mem(addr, I_LD_RW_I(0));
+      `cpu_mem(addr, 16'h3210);
+      `cpu_mem(addr, I_LD_RW_I(5));
+      `cpu_mem(addr, 16'h7654);
+      `cpu_mem(addr, I_LD_RW_I(10));
+      `cpu_mem(addr, 16'h1032);
+      `cpu_mem(addr, I_LD_RW_I(15));
+      `cpu_mem(addr, 16'h5476);
+      `cpu_mem(addr, I_LD_RW_SI(0));
+      `cpu_mem(addr, 16'h3210);
+      `cpu_mem(addr, I_LD_RW_SI(5));
+      `cpu_mem(addr, 16'h7654);
+      `cpu_mem(addr, I_LD_RW_SI(10));
+      `cpu_mem(addr, 16'h1032);
+      `cpu_mem(addr, I_LD_RW_SI(15));
+      `cpu_mem(addr, 16'h5476);
+      `cpu_mem(addr, I_INVF(0));
+      `cpu_mem(addr, I_INVF(5));
+      `cpu_mem(addr, I_INVF(10));
+      `cpu_mem(addr, I_INVF(15));
+      `cpu_mem(addr, I_SETF(0));
+      `cpu_mem(addr, I_SETF(5));
+      `cpu_mem(addr, I_SETF(10));
+      `cpu_mem(addr, I_SETF(15));
+      `cpu_mem(addr, I_CLRF(0));
+      `cpu_mem(addr, I_CLRF(5));
+      `cpu_mem(addr, I_CLRF(10));
+      `cpu_mem(addr, I_CLRF(15));
+      `cpu_mem(addr, I_TESTF(0));
+      `cpu_mem(addr, I_TESTF(5));
+      `cpu_mem(addr, I_TESTF(10));
+      `cpu_mem(addr, I_TESTF(15));
+      `cpu_mem(addr, I_CALL_R(0));
+      `cpu_mem(addr, I_CALL_R(5));
+      `cpu_mem(addr, I_CALL_R(10));
+      `cpu_mem(addr, I_CALL_R(15));
+      `cpu_mem(addr, I_RST_N(8'h00));
+      `cpu_mem(addr, I_RST_N(8'h08));
+      `cpu_mem(addr, I_RST_N(8'h20));
+      `cpu_mem(addr, I_RST_N(8'h38));
+      `cpu_mem(addr, I_JP_R(0));
+      `cpu_mem(addr, I_JP_R(5));
+      `cpu_mem(addr, I_JP_R(10));
+      `cpu_mem(addr, I_JP_R(15));
+      `cpu_mem(addr, I_JR_R(0));
+      `cpu_mem(addr, I_JR_R(5));
+      `cpu_mem(addr, I_JR_R(10));
+      `cpu_mem(addr, I_JR_R(15));
+      `cpu_mem(addr, I_CALL_N_(reg_flag_zero, 0));
+      `cpu_mem(addr, I_CALL_N_(reg_flag_carry, 5));
+      `cpu_mem(addr, I_CALL_N_(reg_flag_overflow, 10));
+      `cpu_mem(addr, I_CALL_N_(reg_flag_parity, 15));
+      `cpu_mem(addr, I_CALL_N_(reg_flag_sign, 0));
+      `cpu_mem(addr, I_CALL_(reg_flag_zero, 0));
+      `cpu_mem(addr, I_CALL_(reg_flag_carry, 5));
+      `cpu_mem(addr, I_CALL_(reg_flag_overflow, 10));
+      `cpu_mem(addr, I_CALL_(reg_flag_parity, 15));
+      `cpu_mem(addr, I_CALL_(reg_flag_sign, 0));
+      //  0 0010_10ff_rrrr reserved
+      //  0 0010_11ff_rrrr reserved
+      `cpu_mem(addr, I_JP_NZ(0));
+      `cpu_mem(addr, I_JP_NC(5));
+      `cpu_mem(addr, I_JP_NV(10));
+      `cpu_mem(addr, I_JP_NP(15));
+      `cpu_mem(addr, I_JP_NS(0));
+
+      `cpu_mem(addr, I_JP_Z (0));
+      `cpu_mem(addr, I_JP_C (5));
+      `cpu_mem(addr, I_JP_V (10));
+      `cpu_mem(addr, I_JP_P (15));
+      `cpu_mem(addr, I_JP_S (0));
+
+      `cpu_mem(addr, I_JR_NZ(0));
+      `cpu_mem(addr, I_JR_NC(5));
+      `cpu_mem(addr, I_JR_NV(10));
+      `cpu_mem(addr, I_JR_NP(15));
+      `cpu_mem(addr, I_JR_NS(0));
+
+      `cpu_mem(addr, I_JR_Z (0));
+      `cpu_mem(addr, I_JR_C (5));
+      `cpu_mem(addr, I_JR_V (10));
+      `cpu_mem(addr, I_JR_P (15));
+      `cpu_mem(addr, I_JR_S (0));
+
+      `cpu_mem(addr, I_SRA_R_I(0, 15));
+      `cpu_mem(addr, I_SRA_R_I(5, 10));
+      `cpu_mem(addr, I_SRA_R_I(10, 5));
+      `cpu_mem(addr, I_SRA_R_I(15, 0));
+      `cpu_mem(addr, I_SRL_R_I(0, 15));
+      `cpu_mem(addr, I_SRL_R_I(5, 10));
+      `cpu_mem(addr, I_SRL_R_I(10, 5));
+      `cpu_mem(addr, I_SRL_R_I(15, 0));
+      `cpu_mem(addr, I_SL_R_I (0, 15));
+      `cpu_mem(addr, I_SL_R_I (5, 10));
+      `cpu_mem(addr, I_SL_R_I (10, 5));
+      `cpu_mem(addr, I_SL_R_I (15, 0));
+      `cpu_mem(addr, I_RLC_R_I(0, 15));
+      `cpu_mem(addr, I_RLC_R_I(5, 10));
+      `cpu_mem(addr, I_RLC_R_I(10, 5));
+      `cpu_mem(addr, I_RLC_R_I(15, 0));
+
+      `cpu_mem(addr, I_ADD_R_I(0, 15));
+      `cpu_mem(addr, I_ADD_R_I(5, 10));
+      `cpu_mem(addr, I_ADD_R_I(10, 5));
+      `cpu_mem(addr, I_ADD_R_I(15, 0));
+      `cpu_mem(addr, I_SUB_R_I(0, 15));
+      `cpu_mem(addr, I_SUB_R_I(5, 10));
+      `cpu_mem(addr, I_SUB_R_I(10, 5));
+      `cpu_mem(addr, I_SUB_R_I(15, 0));
+
+      `cpu_mem(addr, I_DJNZ(0, 15));
+      `cpu_mem(addr, I_DJNZ(5, 10));
+      `cpu_mem(addr, I_DJNZ(10, 5));
+      `cpu_mem(addr, I_DJNZ(15, 0));
+      `cpu_mem(addr, I_EX_R_R(0,  31));
+      `cpu_mem(addr, I_EX_R_R(5,  30));
+      `cpu_mem(addr, I_EX_R_R(10, 25));
+      `cpu_mem(addr, I_EX_R_R(15, 20));
+      `cpu_mem(addr, I_EX_R_R(20, 15));
+      `cpu_mem(addr, I_EX_R_R(25, 10));
+      `cpu_mem(addr, I_EX_R_R(30, 5));
+      `cpu_mem(addr, I_EX_R_R(31, 0));
+      //  0 1110_aaaa_bbbb reserved
+      //  0 1111_aaaa_bbbb reserved
+
+      `cpu_mem(addr, I_LD_RB_I(0,  8'hff));
+      `cpu_mem(addr, I_LD_RB_I(5,  8'ha5));
+      `cpu_mem(addr, I_LD_RB_I(10, 8'h5a));
+      `cpu_mem(addr, I_LD_RB_I(15, 8'h00));
+      `cpu_mem(addr, I_LD_RB_SI(0,  8'hff));
+      `cpu_mem(addr, I_LD_RB_SI(5,  8'ha5));
+      `cpu_mem(addr, I_LD_RB_SI(10, 8'h5a));
+      `cpu_mem(addr, I_LD_RB_SI(15, 8'h00));
+      
+      `cpu_mem(addr, I_LD_M_R (0, 15));
+      `cpu_mem(addr, I_LD_M_R (5, 10));
+      `cpu_mem(addr, I_LD_M_R (10, 5));
+      `cpu_mem(addr, I_LD_M_R (15, 0));
+      `cpu_mem(addr, I_LD_R_M (0, 15));
+      `cpu_mem(addr, I_LD_R_M (5, 10));
+      `cpu_mem(addr, I_LD_R_M (10, 5));
+      `cpu_mem(addr, I_LD_R_M (15, 0));
+      `cpu_mem(addr, I_LD_M_RW(0, 15));
+      `cpu_mem(addr, I_LD_M_RW(5, 10));
+      `cpu_mem(addr, I_LD_M_RW(10, 5));
+      `cpu_mem(addr, I_LD_M_RW(15, 0));
+      `cpu_mem(addr, I_LD_RW_M(0, 15));
+      `cpu_mem(addr, I_LD_RW_M(5, 10));
+      `cpu_mem(addr, I_LD_RW_M(10, 5));
+      `cpu_mem(addr, I_LD_RW_M(15, 0));
+      `cpu_mem(addr, I_LD_M_RB(0, 15));
+      `cpu_mem(addr, I_LD_M_RB(5, 10));
+      `cpu_mem(addr, I_LD_M_RB(10, 5));
+      `cpu_mem(addr, I_LD_M_RB(15, 0));
+      `cpu_mem(addr, I_LD_RB_M(0, 15));
+      `cpu_mem(addr, I_LD_RB_M(5, 10));
+      `cpu_mem(addr, I_LD_RB_M(10, 5));
+      `cpu_mem(addr, I_LD_RB_M(15, 0));
+      
+      `cpu_mem(addr, I_OUT (0, 15));
+      `cpu_mem(addr, I_OUT (5, 10));
+      `cpu_mem(addr, I_OUT (10, 5));
+      `cpu_mem(addr, I_OUT (15, 0));
+      `cpu_mem(addr, I_IN  (0, 15));
+      `cpu_mem(addr, I_IN  (5, 10));
+      `cpu_mem(addr, I_IN  (10, 5));
+      `cpu_mem(addr, I_IN  (15, 0));
+      `cpu_mem(addr, I_OUTW(0, 15));
+      `cpu_mem(addr, I_OUTW(5, 10));
+      `cpu_mem(addr, I_OUTW(10, 5));
+      `cpu_mem(addr, I_OUTW(15, 0));
+      `cpu_mem(addr, I_INW (0, 15));
+      `cpu_mem(addr, I_INW (5, 10));
+      `cpu_mem(addr, I_INW (10, 5));
+      `cpu_mem(addr, I_INW (15, 0));
+      `cpu_mem(addr, I_OUTB(0, 15));
+      `cpu_mem(addr, I_OUTB(5, 10));
+      `cpu_mem(addr, I_OUTB(10, 5));
+      `cpu_mem(addr, I_OUTB(15, 0));
+      `cpu_mem(addr, I_INB (0, 15));
+      `cpu_mem(addr, I_INB (5, 10));
+      `cpu_mem(addr, I_INB (10, 5));
+      `cpu_mem(addr, I_INB (15, 0));
+      
+      `cpu_mem(addr, I_LD_R_R(0,  31));
+      `cpu_mem(addr, I_LD_R_R(5,  30));
+      `cpu_mem(addr, I_LD_R_R(10, 25));
+      `cpu_mem(addr, I_LD_R_R(15, 20));
+      `cpu_mem(addr, I_LD_R_R(20, 15));
+      `cpu_mem(addr, I_LD_R_R(25, 10));
+      `cpu_mem(addr, I_LD_R_R(30,  5));
+      `cpu_mem(addr, I_LD_R_R(31,  0));
+      
+      `cpu_mem(addr, I_ADD(0,  1,  2));
+      `cpu_mem(addr, I_ADD(12, 13, 15));
+      `cpu_mem(addr, I_SUB(0,  1,  2));
+      `cpu_mem(addr, I_SUB(12, 13, 15));
+      `cpu_mem(addr, I_MUL(0,  1,  2));
+      `cpu_mem(addr, I_MUL(12, 13, 15));
+      `cpu_mem(addr, I_DIV(0,  1,  2));
+      `cpu_mem(addr, I_DIV(12, 13, 15));
+      `cpu_mem(addr, I_AND(0,  1,  2));
+      `cpu_mem(addr, I_AND(12, 13, 15));
+      `cpu_mem(addr, I_OR (0,  1,  2));
+      `cpu_mem(addr, I_OR (12, 13, 15));
+      `cpu_mem(addr, I_XOR(0,  1,  2));
+      `cpu_mem(addr, I_XOR(12, 13, 15));
+      `cpu_mem(addr, I_CP (0,  1,  2));
+      `cpu_mem(addr, I_CP (12, 13, 15));
+
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+      `cpu_mem(addr, 16'h0000);
+
+      mem_dump('h0000, addr - 16);
+
+      tb_end();
+
+   endtask // tb_test_dump_inst
+
    task tb_test_LD_r_nnnn();
       bus_addr_t addr;
       bus_data_t data;
@@ -1043,6 +1328,7 @@ module main();
    initial begin
       tb_init();
       tb_test00();
+      tb_test_dump_inst();
       tb_test_LD_r_nnnn();
       if (CPU_REG_WIDTH == 32) begin
          tb_test_LD_r_nnnnnnnn();
