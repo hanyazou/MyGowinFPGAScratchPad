@@ -832,6 +832,9 @@ module main();
       `tb_assert(regs(0) === 'h0000);
       `tb_assert(regs(1) === 'h1010);
 
+      // mem_dump('h0000, 'h20);
+      // mem_dump('h1000, 'h10);
+
       if (saved_assertion_failures != tb_assertion_failures)
          reg_dump(0, CPU_NUMREGS - 1);
 

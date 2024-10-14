@@ -44,7 +44,7 @@
       .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
       io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, clk, uart_txp);
 
-  function reg_t regs(reg_num_t n);
+   function reg_t regs(reg_num_t n);
       return cpu0.reg_read(n);
    endfunction
 
@@ -116,6 +116,10 @@
       end
    endtask
 
+   function bit [7:0] to_c([7:0] v);
+      return (8'h20 <= v && v <= 8'h7e) ? v : ".";
+   endfunction
+
    task mem_dump(int addr, int len);
       integer i;
       integer addr_end;
@@ -125,9 +129,16 @@
          for (i = 0; i < 8; i++) begin
             mem_read(addr + i * 2, data[i]);
          end
-         $display("%h: %h %h %h %h %h %h %h %h", bus_addr_t'(addr),
-             data[0], data[1], data[2], data[3],
-             data[4], data[5], data[6], data[7]);
+         $display("%h  %h %h %h %h %h %h %h %h  %h %h %h %h %h %h %h %h  |%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c|",
+             addr,
+             data[0][7:0], data[0][15:8], data[1][7:0], data[1][15:8],
+             data[2][7:0], data[2][15:8], data[3][7:0], data[3][15:8],
+             data[4][7:0], data[4][15:8], data[5][7:0], data[5][15:8],
+             data[6][7:0], data[6][15:8], data[7][7:0], data[7][15:8],
+             to_c(data[0][7:0]), to_c(data[0][15:8]), to_c(data[1][7:0]), to_c(data[1][15:8]),
+             to_c(data[2][7:0]), to_c(data[2][15:8]), to_c(data[3][7:0]), to_c(data[3][15:8]),
+             to_c(data[4][7:0]), to_c(data[4][15:8]), to_c(data[5][7:0]), to_c(data[5][15:8]),
+             to_c(data[6][7:0]), to_c(data[6][15:8]), to_c(data[7][7:0]), to_c(data[7][15:8]));
       end
    endtask
 
