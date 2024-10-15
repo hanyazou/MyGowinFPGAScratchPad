@@ -142,6 +142,19 @@
       end
    endtask
 
+   task mem_dump_sv(int addr, int len);
+      integer i;
+      integer addr_end;
+      bus_data_t data;
+
+      addr = addr / 2;
+      len = len / 2;
+      for (addr_end = addr + len; addr < addr_end; addr += 1) begin
+         mem_read(addr * 2, data);
+         $display("      mem['h%h] = 'h%h;", addr[15:0], data[15:0]);
+      end
+   endtask
+
    task reg_dump(int reg_num, int n = CPU_NUMREGS - 1);
       integer i;
       for (i = reg_num; i < reg_num + n; i += 4) begin

@@ -4,6 +4,15 @@ module main();
    `include "tb_h80cpu.svh"
    `include "h80cpu_instmacros.svh"
 
+   task tb_test_rom();
+
+      tb_begin("test_rom");
+      cpu_init();
+      cpu_run();
+      tb_end();
+
+   endtask // tb_test_rom
+
    task tb_test00();
       bus_data_t data;
 
@@ -1183,6 +1192,8 @@ module main();
       `cpu_mem(addr, I_OUTB(8, 4));          // OUT r8('h0000), r4(I)
       `cpu_mem(addr, I_RET());               // RET
 
+      // mem_dump_sv('h1000, addr - 'h1000);
+
       //
       // main routine
       //
@@ -1312,6 +1323,8 @@ module main();
 
       `cpu_mem(addr, I_HALT());              // HALT
 
+      // mem_dump_sv('h0000, addr - 'h0000);
+
       cpu_run();
       while (regs(reg_pc) != addr) begin
          $display("  %h: %h X=%h Y=%h A=%h B=%h CA=%h CB=%h T=%h I=%h",
@@ -1327,6 +1340,7 @@ module main();
 
    initial begin
       tb_init();
+      tb_test_rom();
       tb_test00();
       tb_test_dump_inst();
       tb_test_LD_r_nnnn();
