@@ -1,9 +1,15 @@
    `include "h80cpu.svh"
    `include "h80cpu_instmacros.svh"
    initial begin
-      mem['h0800] = 'h0444;  // I_SRA_R_I(4, 4)
-      mem['h0801] = 'h0455;  // I_SRA_R_I(5, FRACBITS - 4)
-      mem['h0802] = 'ha245;  // I_MUL(2, 4, 5)
+      if (16 < CPU_REG_WIDTH) begin
+         mem['h0800] = 'ha245;  // I_MUL(2, 4, 5)
+         mem['h0801] = 'h0429;  // I_SRA_R_I(2, FRACBITS)
+         mem['h0802] = 'h0000;  // I_NOP()
+      end else begin
+         mem['h0800] = 'h0444;  // I_SRA_R_I(4, 4)
+         mem['h0801] = 'h0455;  // I_SRA_R_I(5, FRACBITS - 4)
+         mem['h0802] = 'ha245;  // I_MUL(2, 4, 5)
+      end
       mem['h0803] = 'h0002;  // I_RET()
       mem['h0804] = 'h0168;  // I_LD_RW_I(8)
       mem['h0805] = 'h000a;  // 10

@@ -1170,10 +1170,16 @@ module main();
 
       // fp_mul(A, B)
       label_fp_mul = addr;
-      `cpu_mem(addr, I_SRA_R_I(4, 4));       // r2 = (A >> 4)
-      `cpu_mem(addr, I_SRA_R_I(5, FRACBITS - 4));       // r5 = (A >> (FRACBITS - 4))
-      `cpu_mem(addr, I_MUL(2, 4, 5));        // r2 = (A * B) >> FRACBITS
-      `cpu_mem(addr, I_RET());               // return
+      if (16 < CPU_REG_WIDTH) begin
+         `cpu_mem(addr, I_MUL(2, 4, 5));                // r2 = (A * B)
+         `cpu_mem(addr, I_SRA_R_I(2, FRACBITS));	// r2 = (A * B) >> FRACBITS
+         `cpu_mem(addr, I_NOP());
+      end else begin
+         `cpu_mem(addr, I_SRA_R_I(4, 4));               // r2 = (A >> 4)
+         `cpu_mem(addr, I_SRA_R_I(5, FRACBITS - 4));    // r5 = (B >> (FRACBITS - 4))
+         `cpu_mem(addr, I_MUL(2, 4, 5));                // r2 = (A * B)
+      end
+      `cpu_mem(addr, I_RET());                          // return
 
       // put_pixel(I)
       label_put_pixel = addr;
