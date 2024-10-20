@@ -7,7 +7,8 @@ module top(
 
    localparam BUS_ADDR_WIDTH = 16;
    localparam BUS_CMD_WIDTH = 3;
-   localparam BUS_DATA_WIDTH = 16;
+   //localparam BUS_DATA_WIDTH = 16;
+   localparam BUS_DATA_WIDTH = 32;
 
    `include "h80bus.svh"
    `include "h80cpu.svh"

@@ -1,4 +1,5 @@
-localparam CPU_REG_WIDTH = 16;
+//localparam CPU_REG_WIDTH = 16;
+localparam CPU_REG_WIDTH = 32;
 localparam CPU_NUMREGS = 24;
 
 typedef logic [CPU_REG_WIDTH-1:0] reg_t;
