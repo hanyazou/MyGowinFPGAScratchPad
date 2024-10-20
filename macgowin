@@ -3,7 +3,7 @@
 IMAGENAME=gowin_eda
 USER=user
 CWD=$( cd $( pwd ) &> /dev/null && pwd | sed -e "s|$( cd && pwd )/||" )
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+script_dir="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 home_in_container=/home/$USER
 
 usage()
@@ -13,6 +13,8 @@ usage()
     echo "options:"
     echo "    -b, --board <board name>"
     echo "        --list-boards"
+    echo "    -e, --education"
+    echo "    -s, --standard"
     echo "    -h, --help"
     echo
     echo "examples:"
@@ -27,6 +29,8 @@ main()
 
     opt_out_dir=.
     opt_board=tangnano20k
+    opt_education=true
+    opt_edition=-edu
 
     local done=false
     local exec_ide=false
@@ -53,6 +57,14 @@ main()
             echo "    tangprimer25k"
             done=true
             ;;
+        -e|--edu|--education)
+            opt_education=true
+            shift
+            ;;
+        -s|--std|--standard)
+            opt_education=false
+            shift
+            ;;
         -*|--*)
             echo "Unknown option $1"
             exit 1
@@ -63,6 +75,13 @@ main()
             ;;
         esac
     done
+
+    if $opt_education; then
+        opt_edition=-edu
+    else
+        opt_edition=-std
+    fi
+    gowin_path="/usr/local/bin/gowin$opt_edition/IDE/bin:/usr/local/bin/gowin$opt_edition/Programmer/bin"
 
     case "$opt_board" in
     tangnano20k)
@@ -97,12 +116,13 @@ main()
             esac
             run_container
             docker exec -it ${IMAGENAME}-i \
-                /bin/bash -c "cd ${CWD} && gw_sh ${opt_out_dir}/impl/.gowin_script.tmp"
+                /bin/bash -c "cd ${CWD} && export PATH=$gowin_path:\$PATH && time gw_sh ${opt_out_dir}/impl/.gowin_script.tmp"
             ;;
         shell)
+            xhost +localhost
             run_container
             docker exec -it ${IMAGENAME}-i \
-                /bin/bash -c "cd ${CWD} && exec /bin/bash"
+                /bin/bash -c "cd ${CWD} && export PATH=$gowin_path:\$PATH && exec /bin/bash"
             ;;
         ide)
             exec_ide=true
@@ -126,7 +146,7 @@ main()
         xhost +localhost
         run_container
         docker exec -it ${IMAGENAME}-i \
-            /bin/bash -c gw_ide
+            /bin/bash -c "cd ${CWD} && export PATH=$gowin_path:\$PATH && gw_ide"
     fi
 }
 
