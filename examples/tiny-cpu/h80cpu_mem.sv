@@ -22,8 +22,9 @@ module h80cpu_mem #(
    assign wait_n = (!ce_n && state != 0) ? 1'b0 : 1'b1;
    assign data_ = (!ce_n && cmd[0]) ? rd_data : {BUS_DATA_WIDTH{1'bz}};
 
-   // `include "rom_hello.svh"
-   `include "rom_mandelbrot.svh"
+   // `include "rom/hello.svh"
+   // `include "rom/mandelbrot.svh"
+   `include "rom/mandelbrot_asm.svh"
 
    always @(posedge clk) begin
       if (reset) begin
