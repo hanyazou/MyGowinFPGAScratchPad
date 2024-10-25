@@ -31,7 +31,7 @@ T		equ	r3
 
 	org	0000h
 
-	ld.w	r0,STACK
+	ld	r0,STACK
 	ld	sp,r0
 	ld.sw	CB,CB0
 	ld.sw	Y,HEIGHT
@@ -67,8 +67,7 @@ loop_i:
 	sra	tmp,FRACBITS
 	add	T,tmp		; T = A * A + B * B
 
-	ld.w	tmp,FP4_0
-	cp	tmp,T		; 4.0 - (A * A + B * B)
+	cp	FP4_0,T		; 4.0 - (A * A + B * B)
 	jr	nc,next
 
 	ld	arg0,I
@@ -77,27 +76,24 @@ loop_i:
 
 next:
 	add	I,1
-	ld	tmp,16
-	cp	I,tmp
+	cp	I,16
 	jp	c,loop_i
 
-	ld.b	tmp," "
-	ld.b	r1,CONDAT
+	ld	tmp," "
+	ld	r1,CONDAT
 	out.b	(r1),tmp
 
 exit_loop_i:
-	ld	tmp,FP0_0458	; CA += 0.0458
-	add	CA,tmp
+	add	CA,FP0_0458	; CA += 0.0458
 	sub	X,1
 	jr	nz,loop_x
 
-	ld	tmp,FP0_0833	; CB += 0.0833
-	add	CB,tmp
+	add	CB,FP0_0833	; CB += 0.0833
 
-	ld.b	tmp0,CONDAT
-	ld.b	tmp1,0dh
+	ld	tmp0,CONDAT
+	ld	tmp1,0dh
 	out.b	(tmp0),tmp1
-	ld.b	tmp1,0ah
+	ld	tmp1,0ah
 	out.b	(tmp0),tmp1
 
 	sub	Y,1
@@ -106,13 +102,11 @@ exit_loop_i:
 	halt
 
 put_pixel:
-	ld.w	tmp,10
-	cp	r4,tmp
+	cp	r4,10
 	jr	c,l0
         add	r4,7
 l0:
-	ld	tmp,48
-	add	r4,tmp
-	ld.w	tmp,CONDAT
+	add	r4,48
+	ld	tmp,CONDAT
 	out.b	(tmp),r4
 	ret
