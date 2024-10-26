@@ -24,7 +24,11 @@ module h80cpu_io #(
 
    assign wait_n = (!ce_n && state != S_IDLE) ? 1'b0 : 1'b1;
 
-   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
+   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
+   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(230400))
+   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(460800))
+   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(614400))
+   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(1228800))
        tx(sysclk, uart_tx, uart_en, uart_busy, uart_txp);
    
    localparam S_IDLE = 'h0;
