@@ -21,7 +21,7 @@ module echo #(
    bus_addr_t bus_addr = 'h0000;
    bus_cmd_t bus_cmd;
    bus_data_t bus_wr_data = 0;
-   enum { S_READ, S_WRITE } state = S_READ;
+   enum { S_TEST, S_READ, S_WRITE } state = S_TEST;
 
    assign iorq_n_ = !(bus_num == BUS_IO && bus_cmd != bus_cmd_none);
    assign mreq_n_ = !(bus_num == BUS_MEM && bus_cmd != bus_cmd_none);
@@ -32,22 +32,40 @@ module echo #(
    always @(posedge clk) begin
       if (reset) begin
          bus_num = BUS_IO;
-         bus_addr <= 'h0000;
-         bus_cmd <= bus_cmd_read_b;
-         state = S_READ;
+         bus_cmd <= bus_cmd_none;
+         state = S_TEST;
       end else
       if (!bus_wait_n) begin
          // wait for I/O access completion
       end else
       case (state)
-      S_READ: begin
+      S_TEST: begin
          bus_cmd <= bus_cmd_read_b;
-         state <= S_WRITE;
+         bus_addr <= 'h0001;
+         state <= S_READ;
+      end
+      S_READ: begin
+         if (bus_data_ != 0) begin
+            bus_cmd <= bus_cmd_read_b;
+            bus_addr <= 'h0000;
+            state <= S_WRITE;
+         end else begin
+            bus_cmd <= bus_cmd_none;
+            state <= S_TEST;
+         end
       end
       S_WRITE: begin
-         bus_wr_data <= bus_data_;
+         if ("A" <= bus_data_ && bus_data_ <= "Z") begin
+            bus_wr_data <= bus_data_ - "A" + "a";
+         end else
+         if ("a" <= bus_data_ && bus_data_ <= "z") begin
+            bus_wr_data <= bus_data_ - "a" + "A";
+         end else begin
+            bus_wr_data <= bus_data_;
+         end
          bus_cmd <= bus_cmd_write_b;
-         state <= S_READ;
+         bus_addr <= 'h0000;
+         state <= S_TEST;
       end
       endcase // case (state)
    end // always @ (posedge clk)
