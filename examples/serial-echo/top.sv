@@ -2,6 +2,7 @@ module top(
    input wire logic sysclk, S1, S2,
    output wire logic spi_clk, dout, cs, stop,
    output wire logic [10:1] pin,
+   input wire uart_rxp,
    output reg uart_txp
    );
 
@@ -107,7 +108,8 @@ module top(
       .BUS_ADDR_WIDTH(BUS_ADDR_WIDTH),
       .BUS_CMD_WIDTH(BUS_CMD_WIDTH),
       .BUS_DATA_WIDTH(BUS_DATA_WIDTH))
-      io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n, sysclk, uart_txp);
+      io0(~clk, reset, io_en_n, bus_addr, bus_cmd, bus_data, io_wait_n,
+          sysclk, uart_rxp, uart_txp);
 
    max7219_display #( .NUM_CASCADES(NUM_CASCADES), .INTENSITY(1) )
      disp(sysclk, S2, frame, spi_clk, dout, cs, stop, pin);
