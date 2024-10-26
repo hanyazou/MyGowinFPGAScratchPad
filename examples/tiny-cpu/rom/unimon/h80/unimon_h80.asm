@@ -1985,28 +1985,8 @@ RNR:	DB	"R",00H
 ;;; Console drivers
 ;;;
 
-	IF USE_DEV_8251
-	INCLUDE	"dev/dev_8251.asm"
-	ENDIF
-
-	IF USE_DEV_Z80SIO
-	INCLUDE	"dev/dev_z80sio.asm"
-	ENDIF
-
-	IF USE_DEV_NSC858
-	INCLUDE	"dev/dev_nsc858.asm"
-	ENDIF
-
-	IF USE_DEV_Z280
-	INCLUDE	"dev/dev_z280.asm"
-	ENDIF
-
-	IF USE_DEV_64180
-	INCLUDE	"dev/dev_64180.asm"
-	ENDIF
-
-	IF USE_DEV_EMILY
-	INCLUDE	"dev/dev_emily.asm"
+	IF USE_DEV_H80
+	INCLUDE	"dev/dev_h80.asm"
 	ENDIF
 
 ;;;
