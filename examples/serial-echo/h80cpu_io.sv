@@ -15,17 +15,19 @@ module h80cpu_io #(
    output wire uart_txp
    );
 
-   `include "h80bus.svh"
+   `include "../tiny-cpu/h80bus.svh"
 
    reg prev_clk;
    reg uart_en = 0;
    reg [7:0] uart_tx = 0;
+   reg [7:0] uart_rx = "Z";
    wire uart_busy;
 
    assign wait_n = (!ce_n && state != S_IDLE) ? 1'b0 : 1'b1;
+   assign data = (!ce_n && cmd[0]) ? uart_rx : {BUS_DATA_WIDTH{1'bz}};
 
-   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
-   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(230400))
+   uart_tx_V2 #( .clk_freq(50000000), .uart_freq(115200))
+   //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(230400))
    //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(460800))
    //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(614400))
    //uart_tx_V2 #( .clk_freq(50000000), .uart_freq(1228800))
@@ -58,6 +60,13 @@ module h80cpu_io #(
                            uart_en <= 1;
                         end else begin
                            state <= S_WAIT_UART;
+                        end
+                     end else
+                     if (cmd == bus_cmd_read_b) begin
+                        if (uart_rx + 1 <= "Z") begin
+                           uart_rx = uart_rx + 1;
+                        end else begin
+                           uart_rx = "A";
                         end
                      end
                   end
