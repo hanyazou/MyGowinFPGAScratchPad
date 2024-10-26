@@ -79,9 +79,7 @@ next:
 	cp	I,16
 	jp	c,loop_i
 
-	ld	tmp," "
-	ld	r1,CONDAT
-	out.b	(r1),tmp
+	out.b	(CONDAT)," "
 
 exit_loop_i:
 	add	CA,FP0_0458	; CA += 0.0458
@@ -90,11 +88,8 @@ exit_loop_i:
 
 	add	CB,FP0_0833	; CB += 0.0833
 
-	ld	tmp0,CONDAT
-	ld	tmp1,0dh
-	out.b	(tmp0),tmp1
-	ld	tmp1,0ah
-	out.b	(tmp0),tmp1
+	out.b	(CONDAT),0dh
+	out.b	(CONDAT),0ah
 
 	sub	Y,1
 	jr	nz,loop_y
@@ -107,6 +102,5 @@ put_pixel:
         add	r4,7
 l0:
 	add	r4,48
-	ld	tmp,CONDAT
-	out.b	(tmp),r4
+ 	out.b	(CONDAT),r4
 	ret
