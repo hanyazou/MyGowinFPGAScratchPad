@@ -18,5 +18,5 @@ CONST:
 	RET
 
 CONOUT:
-	OUT.B	(CONDAT),arg0
+	OUT.B	(CONDAT),res
 	RET
