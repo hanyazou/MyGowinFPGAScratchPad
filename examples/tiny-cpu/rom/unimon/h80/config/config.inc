@@ -19,7 +19,7 @@ BUFLEN:	equ	16
 ;;; Options
 ;;;
 
-USE_IDENT = 0			; CPU Identification
+USE_IDENT = 1			; CPU Identification
 
 USE_REGCMD = 0			; R(egister) command and related functions
 
