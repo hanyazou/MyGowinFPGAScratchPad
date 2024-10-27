@@ -40,8 +40,6 @@ RMR_V:	EQU	83H
 OMCR_V:	EQU	40H
 IOBASE:	EQU	0C0H		; Internal I/O BASE (00H,40H,80H,0C0H)
 
-USE_180TRAP = 0			; Handle HD64180 TRAP (experimental)
-
 ;;; Z8S180 specific
 	;; CPU Control Register
 CCR1_V:	EQU	00H
