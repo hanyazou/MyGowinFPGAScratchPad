@@ -7,9 +7,11 @@ module main();
    task tb_test_rom();
 
       tb_begin("test_rom");
+      io0.open_input_file("tb_mon_input.txt");
       cpu_init();
       cpu_run();
       tb_end();
+      io0.close_input_file();
 
    endtask // tb_test_rom
 

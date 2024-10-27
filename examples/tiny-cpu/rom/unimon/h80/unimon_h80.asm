@@ -218,15 +218,15 @@ TL:
 WSTART:
 	LD	arg0,PROMPT
 	CALL	STROUT
-	HALT
-	IF 0                    ; XXX
 
 	CALL	GETLIN
-	LD	HL,INBUF
+	LD	arg0,INBUF
 	CALL	SKIPSP
 	CALL	UPPER
-	OR	A
+	OR	res,res
 	JR	Z,WSTART
+	HALT
+	IF 0                    ; XXX
 
 	CP	'D'
 	JR	Z,DUMP
@@ -1271,31 +1271,28 @@ HEXOUT1:
 	IF 0                    ; XXX
 
 HEXIN:
-	XOR	A
+	XOR	res,res
 	CALL	HI0
-	RLCA
-	RLCA
-	RLCA
-	RLCA
+	SL	res,4
 HI0:
-	PUSH	BC
-	LD	C,A
+	PUSH	v0
+	LD	v0,res
 	CALL	CONIN
 	CALL	UPPER
-	CP	'0'
+	CP	res,'0'
 	JR	C,HIR
-	CP	'9'+1
+	CP	res,'9'+1
 	JR	C,HI1
-	CP	'A'
+	CP	res,'A'
 	JR	C,HIR
-	CP	'F'+1
+	CP	res,'F'+1
 	JR	NC,HIR
-	SUB	A,'A'-'9'-1
+	SUB	res,'A'-'9'-1
 HI1:
-	SUB	A,'0'
-	OR	C
+	SUB	res,'0'
+	OR	res,v0
 HIR:
-	POP	BC
+	POP	v0
 	RET
 	
 	ENDIF                   ; XXX
@@ -1306,67 +1303,69 @@ CRLF:
 	LD	arg0,LF
 	JP	CONOUT
 
-	IF 0                    ; XXX
-
 GETLIN:
-	LD	HL,INBUF
-	LD	B,0
+	PUSH	v2
+	PUSH	v0
+	LD	v2,INBUF
+	LD	v0,0
 GL0:
 	CALL	CONIN
-	CP	CR
+	CP	res,CR
 	JR	Z,GLE
-	CP	LF
+	CP	res,LF
 	JR	Z,GLE
-	CP	BS
+	CP	res,BS
 	JR	Z,GLB
-	CP	DEL
+	CP	res,DEL
 	JR	Z,GLB
-	CP	' '
+	CP	res,' '
 	JR	C,GL0
-	CP	80H
+	CP	res,80H
 	JR	NC,GL0
-	LD	C,A
-	LD	A,B
-	CP	BUFLEN-1
+	CP	v0,BUFLEN-1
 	JR	NC,GL0	; Too long
-	INC	B
-	LD	A,C
+	ADD	v0,1
+	LD	arg0,res
 	CALL	CONOUT
-	LD	(HL),A
-	INC	HL
+	LD.B	(v2),res
+	ADD	v2,1
 	JR	GL0
 GLB:
-	LD	A,B
-	AND	A
+	AND	v0,v0
 	JR	Z,GL0
-	DEC	B
-	DEC	HL
-	LD	A,08H
+	SUB	v0,1
+	SUB	v2,1
+	LD	arg0,08H
 	CALL	CONOUT
-	LD	A,' '
+	LD	arg0,' '
 	CALL	CONOUT
-	LD	A,08H
+	LD	arg0,08H
 	CALL	CONOUT
 	JR	GL0
 GLE:
 	CALL	CRLF
-	LD	(HL),00H
+	LD.B	(v2),00H
+	POP	v0
+	POP	v2
 	RET
 
 SKIPSP:
-	LD	A,(HL)
-	CP	A,' '
+	XOR	res,res
+	LD.B	res,(arg0)
+	CP	res,' '
 	RET	NZ
-	INC	HL
+	ADD	arg0,1
 	JR	SKIPSP
 
 UPPER:
-	CP	'a'
+	CP	res,'a'
 	RET	C
-	CP	'z'+1
+	CP	res,'z'+1
 	RET	NC
-	ADD	A,'A'-'a'
+	ADD	res,'A'-'a'
 	RET
+
+	IF 0                    ; XXX
 
 RDHEX:
 	LD	C,0
