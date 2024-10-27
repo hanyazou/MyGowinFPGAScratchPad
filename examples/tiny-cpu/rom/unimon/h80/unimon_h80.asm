@@ -113,33 +113,37 @@ WU0:
 	;; Check RAM
 	IF USE_RAMCHK
 
-	LD	DE,RAM_B
-	LD	HL,RAM_B+1
+	LD	v1,RAM_B
+	LD	v2,RAM_B+1
+	XOR	tmp0,tmp0
+	XOR	tmp1,tmp1
 RC0:
-	LD	A,(HL)
-	LD	B,A
-	CPL
-	LD	(HL),A
-	CP	(HL)
+	LD.B	tmp0,(v2)
+	LD	tmp1,tmp0
+	CPL	tmp0
+	AND	tmp0,0ffh
+	LD.B	(v2),tmp0
+	LD.B	arg0,(v2)
+	CP	tmp0,arg0
 	JR	NZ,RC1		; Unwritable
-	LD	A,(DE)
-	CP	(HL)
+	LD	tmp0,(v1)
+	CP	tmp0,arg0
 	JR	NZ,RC2
-	LD	(HL),B
-	LD	A,(DE)
-	CP	(HL)
+	LD	(v2),tmp1
+	LD	tmp0,(v1)
+	LD.B	arg0,(v2)
+	CP	tmp0,arg0
 	JR	NZ,RC2
 RC1:	
-	;; (HL) and (DE) points same memory or (HL) points no memory
-	LD	(RAMEND),HL
+	;; (v2) and (v1) points same memory or (v2) points no memory
+	LD	(RAMEND),v2
 	JR	RCE
 RC2:
-	LD	(HL),B
-	INC	HL
-	LD	A,H
-	OR	L
-	JR	NZ,RC0
-	LD	(RAMEND),HL
+	LD	(v2),tmp1
+	ADD	v2,1
+	CP	v2,RAM_MAX
+	JR	C,RC0
+	LD.W	(RAMEND),v2
 RCE:	
 	ENDIF
 	
@@ -201,12 +205,12 @@ TL:
 	ENDIF
 
 	IF USE_RAMCHK
-	LD	HL,RAM_B
+	LD	arg0,RAM_B
 	CALL	HEXOUT4
-	LD	A,'-'
+	LD	arg0,'-'
 	CALL	CONOUT
-	LD	HL,(RAMEND)
-	DEC	HL
+	LD.W	arg0,(RAMEND)
+	SUB	arg0,1
 	CALL	HEXOUT4
 	CALL	CRLF
 	ENDIF
@@ -1246,27 +1250,25 @@ STROUT:
 	ADD	arg0,1
 	JR	STROUT
 
-	IF 0                    ; XXX
-
 HEXOUT4:
-	LD	A,H
+	PUSH	arg0
+	SRA	arg0,8
 	CALL	HEXOUT2
-	LD	A,L
+	POP	arg0
 HEXOUT2:
-	PUSH	AF
-	RRA
-	RRA
-	RRA
-	RRA
+	LD	arg1,arg0
+	SRA	arg0,4
 	CALL	HEXOUT1
-	POP	AF
+	LD	arg0,arg1
 HEXOUT1:
-	AND	0FH
-	ADD	A,'0'
-	CP	'9'+1
+	AND	arg0,0FH
+	ADD	arg0,'0'
+	CP	arg0,'9'+1
 	JP	C,CONOUT
-	ADD	A,'A'-'9'-1
+	ADD	arg0,'A'-'9'-1
 	JP	CONOUT
+
+	IF 0                    ; XXX
 
 HEXIN:
 	XOR	A
@@ -1296,11 +1298,15 @@ HIR:
 	POP	BC
 	RET
 	
+	ENDIF                   ; XXX
+
 CRLF:
-	LD	A,CR
+	LD	arg0,CR
 	CALL	CONOUT
-	LD	A,LF
+	LD	arg0,LF
 	JP	CONOUT
+
+	IF 0                    ; XXX
 
 GETLIN:
 	LD	HL,INBUF
@@ -1845,5 +1851,8 @@ REG_E:
 	IF USE_RAMCHK
 RAMEND:	DS	2
 	ENDIF
+
+        ORG 1000h
+        DB	0
 	
 	END
