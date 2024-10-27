@@ -1,11 +1,11 @@
 ;;; 
-;;; Universal Monitor for Zilog Z80
+;;; Universal Monitor for H80
 ;;;   Copyright (C) 2019,2020,2021 Haruo Asano
 ;;;
 
-	CPU	Z80
+	CPU	H80
 
-TARGET:	equ	"Z80"
+TARGET:	equ	"H80"
 
 
 	INCLUDE	"config.inc"
@@ -18,7 +18,7 @@ TARGET:	equ	"Z80"
 ;;;
 
 	ORG	0000H
-	DI
+        ;; DI
 	JP	CSTART
 
 	ORG	0008H
@@ -35,6 +35,8 @@ TARGET:	equ	"Z80"
 
 	;; ORG	0028H
 	;; JP	EEWRITE
+
+	IF 0                    ; XXX
 
 	ORG	0030H
 	JP	RST30H
@@ -69,6 +71,8 @@ E_CONIN:
 	ORG	ENTRY+40	; Console status
 E_CONST:
 	JP	CONST
+
+	ENDIF                   ; XXX
 
 	;;
 	;;
@@ -106,7 +110,8 @@ CS0:
 	RESTORE
 	ENDIF
 
-	LD	SP,STACK
+	LD	tmp,STACK
+	LD	SP,tmp
 
 	IF USE_SPINIT
 	SPINIT
@@ -168,6 +173,8 @@ RC2:
 RCE:	
 	ENDIF
 	
+	IF 0                    ; XXX
+
 	;; CPU identification
 	XOR	A
 	LD	(PSPEC),A
@@ -277,16 +284,18 @@ IDE:
 	LD	(INBUF),HL
 	ENDIF			; USE_IDENT
 
+	ENDIF                   ; XXX
+
 	CALL    INIT
 
-	LD	HL,8000H
-	LD	(DSADDR),HL
-	LD	(SADDR),HL
-	LD	(GADDR),HL
-	LD	A,'I'
-	LD	(HEXMOD),A
-	XOR	A
-	LD	(IOPAGE),A
+	LD.W	tmp,8000H
+	LD.W	(DSADDR),tmp
+	LD.W	(SADDR),tmp
+	LD.W	(GADDR),tmp
+	LD	tmp,'I'
+	LD.B	(HEXMOD),tmp
+	XOR	tmp,tmp
+	LD.B	(IOPAGE),tmp
 
 	IF USE_REGCMD
 
@@ -304,14 +313,14 @@ IR0:
 
 	ENDIF
 
-	LD	B,100
+	LD	v0,100
 TL:	
-	XOR	A
+	XOR	arg0,arg0
 	CALL	CONOUT
-	DJNZ	TL
+	DJNZ	v0,TL
 	
 	;; Opening message
-	LD	HL,OPNMSG
+	LD	arg0,OPNMSG
 	CALL	STROUT
 
 	IF USE_IDENT
@@ -331,8 +340,11 @@ TL:
 	ENDIF
 
 WSTART:
-	LD	HL,PROMPT
+	LD	arg0,PROMPT
 	CALL	STROUT
+	HALT
+	IF 0                    ; XXX
+
 	CALL	GETLIN
 	LD	HL,INBUF
 	CALL	SKIPSP
@@ -1345,17 +1357,24 @@ RD1:
 
 	ENDIF
 
+	ENDIF                   ; XXX
+
 ;;;
 ;;; Other support routines
 ;;;
 
 STROUT:
-	LD	A,(HL)
-	AND	A
+	LD.B	tmp,(arg0)
+	AND	tmp,tmp
 	RET	Z
+	PUSH	arg0
+	LD	arg0,tmp
 	CALL	CONOUT
-	INC	HL
+	POP	arg0
+	ADD	arg0,1
 	JR	STROUT
+
+	IF 0                    ; XXX
 
 HEXOUT4:
 	LD	A,H
@@ -1696,12 +1715,14 @@ TH0:
 
 	ENDIF			; USE_180TRAP
 
+	ENDIF                   ; XXX
+
 ;;;
 ;;; Messages
 ;;;
 	
 OPNMSG:
-	DB	CR,LF,"Universal Monitor Z80",CR,LF,00H
+	DB	CR,LF,"Universal Monitor H80",CR,LF,00H
 
 PROMPT:
 	DB	"] ",00H
@@ -1984,6 +2005,7 @@ RNR:	DB	"R",00H
 ;;;
 ;;; Console drivers
 ;;;
+	ALIGN	2
 
 	IF USE_DEV_H80
 	INCLUDE	"dev/dev_h80.asm"
