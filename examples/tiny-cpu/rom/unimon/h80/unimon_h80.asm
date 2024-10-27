@@ -191,7 +191,7 @@ IR0:
 
 	LD	v0,100
 TL:	
-	XOR	arg0,arg0
+	XOR	res0,res0
 	CALL	CONOUT
 	DJNZ	v0,TL
 	
@@ -207,7 +207,7 @@ TL:
 	IF USE_RAMCHK
 	LD	arg0,RAM_B
 	CALL	HEXOUT4
-	LD	arg0,'-'
+	LD	res0,'-'
 	CALL	CONOUT
 	LD.W	arg0,(RAMEND)
 	SUB	arg0,1
@@ -1240,13 +1240,10 @@ RD1:
 ;;;
 
 STROUT:
-	LD.B	tmp,(arg0)
-	AND	tmp,tmp
+	LD.B	res0,(arg0)
+	AND	res0,res0
 	RET	Z
-	PUSH	arg0
-	LD	arg0,tmp
 	CALL	CONOUT
-	POP	arg0
 	ADD	arg0,1
 	JR	STROUT
 
@@ -1256,16 +1253,16 @@ HEXOUT4:
 	CALL	HEXOUT2
 	POP	arg0
 HEXOUT2:
-	LD	arg1,arg0
-	SRA	arg0,4
+	LD	res0,arg0
+	SRA	res0,4
 	CALL	HEXOUT1
-	LD	arg0,arg1
+	LD	res0,arg0
 HEXOUT1:
-	AND	arg0,0FH
-	ADD	arg0,'0'
-	CP	arg0,'9'+1
+	AND	res0,0FH
+	ADD	res0,'0'
+	CP	res0,'9'+1
 	JP	C,CONOUT
-	ADD	arg0,'A'-'9'-1
+	ADD	res0,'A'-'9'-1
 	JP	CONOUT
 
 	IF 0                    ; XXX
@@ -1298,9 +1295,9 @@ HIR:
 	ENDIF                   ; XXX
 
 CRLF:
-	LD	arg0,CR
+	LD	res0,CR
 	CALL	CONOUT
-	LD	arg0,LF
+	LD	res0,LF
 	JP	CONOUT
 
 GETLIN:
@@ -1325,7 +1322,6 @@ GL0:
 	CP	v0,BUFLEN-1
 	JR	NC,GL0	; Too long
 	ADD	v0,1
-	LD	arg0,res
 	CALL	CONOUT
 	LD.B	(v2),res
 	ADD	v2,1
@@ -1335,11 +1331,11 @@ GLB:
 	JR	Z,GL0
 	SUB	v0,1
 	SUB	v2,1
-	LD	arg0,08H
+	LD	res0,08H
 	CALL	CONOUT
-	LD	arg0,' '
+	LD	res0,' '
 	CALL	CONOUT
-	LD	arg0,08H
+	LD	res0,08H
 	CALL	CONOUT
 	JR	GL0
 GLE:
