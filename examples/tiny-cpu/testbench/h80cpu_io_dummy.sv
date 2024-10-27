@@ -30,6 +30,7 @@ module h80cpu_io #(
                'h0000: begin
                   if (cmd == bus_cmd_write_b) begin
                      $write("%c", data[7:0]);
+                     $fflush();
                   end
                end
                endcase
