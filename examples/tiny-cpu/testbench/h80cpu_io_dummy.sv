@@ -9,7 +9,7 @@ module h80cpu_io #(
    input wire ce_n,
    input wire [BUS_ADDR_WIDTH-1:0] addr,
    input wire [BUS_CMD_WIDTH-1:0] cmd,
-   inout wire [BUS_DATA_WIDTH-1:0] data,
+   inout wire [BUS_DATA_WIDTH-1:0] data_,
    output wire wait_n,
    input wire sysclk,
    output wire uart_txp
@@ -18,6 +18,19 @@ module h80cpu_io #(
    `include "h80bus.svh"
 
    reg [1:0] state;
+   reg [BUS_DATA_WIDTH-1:0] data;
+   int file_handle = 0;
+
+   assign data_ = (!ce_n && cmd[0]) ? data : {BUS_DATA_WIDTH{1'bz}};
+
+   task open_input_file(input string file_name);
+      file_handle = $fopen(file_name, "rb");
+   endtask
+
+   task close_input_file();
+      $fclose(file_handle);
+      file_handle = 0;
+   endtask
 
    always @(posedge clk) begin
       if (reset) begin
@@ -29,8 +42,29 @@ module h80cpu_io #(
                case (addr)
                'h0000: begin
                   if (cmd == bus_cmd_write_b) begin
-                     $write("%c", data[7:0]);
+                     $write("%c", data_[7:0]);
                      $fflush();
+                  end
+                  if (cmd == bus_cmd_read_b) begin
+                     byte input_data;
+                     if (file_handle == 0) begin
+                        data <= 8'h00;
+                     end else
+                     if ($fread(input_data, file_handle) != 1) begin
+                        close_input_file();
+                        data <= 8'h00;
+                     end else begin
+                        data <= input_data;
+                     end
+                  end
+               end
+               'h0001: begin
+                  if (cmd == bus_cmd_read_b) begin
+                     if (file_handle != 0) begin
+                        data <= 8'b0000_0001;
+                     end else begin
+                        data <= 8'b0000_0000;
+                     end
                   end
                end
                endcase

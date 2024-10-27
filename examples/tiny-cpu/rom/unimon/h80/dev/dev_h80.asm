@@ -8,11 +8,13 @@ INIT:
 	RET
 
 CONIN:
-	IN	res,(CONDAT)
+	XOR	res,res
+	IN.B	res,(CONDAT)
 	RET
 
 CONST:
-	IN	res,(CONST)
+	XOR	res,res
+	IN.B	res,(CONSTAT)
 	RET
 
 CONOUT:
