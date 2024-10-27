@@ -10,6 +10,7 @@
 ENTRY:	EQU	0080H		; Entry point
 
 RAM_B:	EQU	1000H
+RAM_MAX:EQU	2000H
 WORK_B:	equ	0F00H
 STACK:	equ	0FF0H
 
@@ -23,7 +24,7 @@ USE_IDENT = 1			; CPU Identification
 
 USE_REGCMD = 0			; R(egister) command and related functions
 
-USE_RAMCHK = 0			; Check RAM (Must be 1 for DRAM)
+USE_RAMCHK = 1			; Check RAM (Must be 1 for DRAM)
 
 USE_WARMUP = 0			; DRAM warming up
 	IF USE_WARMUP
@@ -101,3 +102,4 @@ tmp		equ	tmp0
 
 v0		equ	r8
 v1		equ	r9
+v2		equ	r10

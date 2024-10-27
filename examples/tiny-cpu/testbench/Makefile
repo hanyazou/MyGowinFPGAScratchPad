@@ -50,7 +50,7 @@ mandelbrot.bin: ../rom/mandelbrot.asm
 	$(asm_to_bin)
 ../rom/unimon_h80.svh: unimon_h80.bin
 	$(bin_to_svh)
-unimon_h80.bin: ../rom/unimon/h80/unimon_h80.asm
+unimon_h80.bin: ../rom/unimon/h80/unimon_h80.asm ../rom/unimon/h80/config.inc
 	$(asm_to_bin)
 
 clean::

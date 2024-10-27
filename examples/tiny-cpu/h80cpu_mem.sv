@@ -1,7 +1,8 @@
 module h80cpu_mem #(
    parameter BUS_ADDR_WIDTH = 16,
    parameter BUS_CMD_WIDTH = 3,
-   parameter BUS_DATA_WIDTH = 16
+   parameter BUS_DATA_WIDTH = 16,
+   parameter MEM_SIZE = 1024*32
    )
    (
    input wire clk,
@@ -15,7 +16,7 @@ module h80cpu_mem #(
 
    `include "h80bus.svh"
 
-   reg [15:0] mem[1024*16];  // 2 bytes x 16K words (32KB)
+   reg [15:0] mem[MEM_SIZE/2];
    reg [BUS_DATA_WIDTH-1:0] rd_data;
    int state = 0;
 
@@ -33,7 +34,7 @@ module h80cpu_mem #(
       end else begin
          case (state)
          0: begin
-            if (!ce_n) begin
+            if (!ce_n && addr < MEM_SIZE) begin
                case (cmd)
                bus_cmd_read: begin
                   rd_data <= { mem[addr[15:1] + 1], mem[addr[15:1] + 0] };
