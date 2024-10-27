@@ -1,14 +1,13 @@
 #
 # Makefile
-#   Universal Monitor for Z80
+#   Universal Monitor for H80
 #
 
-.SUFFIXES: .asm .p .hex .sr
+.SUFFIXES: .asm .p .hex .bin .sr
 
-devs :=	dev/dev_8251.asm dev/dev_z80sio.asm dev/dev_z280.asm \
-		dev/dev_64180.asm dev/dev_emily.asm dev/dev_nsc858.asm
+devs := dev/dev_h80.asm
 
-all:	unimon_z80.hex
+all:	unimon_h80.hex
 
 .p.hex:
 	p2hex -F Intel $*.p $*.hex
@@ -16,7 +15,7 @@ all:	unimon_z80.hex
 .p.sr:
 	p2hex -F Moto $*.p $*.sr
 
-.asm.p:	config.inc $(devs)
+unimon_h80.p:	unimon_h80.asm config.inc $(devs)
 	asl -L $*.asm
 
 config.inc:

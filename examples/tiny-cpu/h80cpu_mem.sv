@@ -24,7 +24,8 @@ module h80cpu_mem #(
 
    // `include "rom/hello.svh"
    // `include "rom/mandelbrot.svh"
-   `include "rom/mandelbrot_asm.svh"
+   // `include "rom/mandelbrot_asm.svh"
+   `include "rom/unimon_h80.svh"
 
    always @(posedge clk) begin
       if (reset) begin

@@ -19,9 +19,9 @@ BUFLEN:	equ	16
 ;;; Options
 ;;;
 
-USE_IDENT = 1			; CPU Identification
+USE_IDENT = 0			; CPU Identification
 
-USE_REGCMD = 1			; R(egister) command and related functions
+USE_REGCMD = 0			; R(egister) command and related functions
 
 USE_RAMCHK = 0			; Check RAM (Must be 1 for DRAM)
 
@@ -32,7 +32,7 @@ WARMUP_INCR = 1			;   Address increment
 WARMUP_CNT = 128 * 8		;   Count
 	ENDIF
 
-USE_NEWAPI = 1			; New API (RST 30H)
+USE_NEWAPI = 0			; New API (RST 30H)
 
 ;;; HD64180 specific
 DCNTL_V: EQU	00H
@@ -40,7 +40,7 @@ RMR_V:	EQU	83H
 OMCR_V:	EQU	40H
 IOBASE:	EQU	0C0H		; Internal I/O BASE (00H,40H,80H,0C0H)
 
-USE_180TRAP = 1			; Handle HD64180 TRAP (experimental)
+USE_180TRAP = 0			; Handle HD64180 TRAP (experimental)
 
 ;;; Z8S180 specific
 	;; CPU Control Register
@@ -72,58 +72,34 @@ SPINIT	MACRO
 ;;; Console Drivers
 ;;;
 
-;;; Zilog Z80 SIO
-	
-USE_DEV_Z80SIO = 0
-	IF USE_DEV_Z80SIO
-SIOAD:	equ	00H		; 
-SIOAC:	equ	01H		;
-SIOBD:	equ	02H		; (Ch.B not supported)
-SIOBC:	equ	03H		; (Ch.B not supported)
-USE_Z80CTC = 0			; Use Z80 CTC for baudrate generator
-	IF USE_Z80CTC
-CTC0:	EQU	10H
-TC_V:	EQU	4		; 9600bps @ 9.8304MHz
-	ENDIF			; USE_Z80CTC
+;;; H80 built in
+
+USE_DEV_H80 = 1
+	IF USE_DEV_H80
+CONDAT:		equ	00H		; Data Register
+CONSTAT:	equ	01H		; Status Register
 	ENDIF
 
-;;; Intel 8251
+;;;
+;;; Calling convention and temporary register assignment
+;;;
 
-USE_DEV_8251 = 0
-	IF USE_DEV_8251
-USARTD:	equ	00H		; Data Register
-USARTC:	equ	01H		; Control / Status Register
-	ENDIF
+asmtmp0		equ	r0      ; Assembler temporary
+asmtmp1		equ	r1
+res0		equ	r2      ; Function results
+res1		equ	r3
+res		equ	res0
+arg0		equ	r4      ; Subprogram arguments
+arg1		equ	r5
+arg		equ	arg0
 
-;;; NS NSC858
+        ;; caller saved temprary registers
 
-USE_DEV_NSC858 = 0
-	IF USE_DEV_NSC858
-NSBASE:	EQU	00H
-RTMR_V:	EQU	0B0H		; Internal clock, 8 bit, no parity (RMR/TMR)
-GMR_V:	EQU	01H		; 1 stop bit, x16
-BRGD_V:	EQU	26		; 9600bps @ 4MHz
-	ENDIF
+tmp0		equ	r6
+tmp1		equ	r7
+tmp		equ	tmp0
 
-;;; Zilog Z280 (Internal)
+        ;; r8 ~ r15 registers are callee saved
 
-USE_DEV_Z280 = 0
-	IF USE_DEV_Z280
-TCR1:	EQU	(19-1)		; bps = CLK(Xtal) / 8 / (TCR1+1) / 16
-	ENDIF
-
-;;; Hitachi HD64180 (Internal)
-
-USE_DEV_64180 = 0
-	IF USE_DEV_64180
-ASBASE:	EQU	IOBASE+0	; IOBASE+1 for ASCI Ch.1
-CNTLA_V: EQU	6CH		; 8bit 1 N
-CNTLB_V: EQU	02H		; CLK/640
-	ENDIF
-
-;;; EMILY Board (Shared Memory)
-
-USE_DEV_EMILY = 1
-	IF USE_DEV_EMILY
-SMBASE:	EQU	0FF0H
-	ENDIF
+v0		equ	r8
+v1		equ	r9
