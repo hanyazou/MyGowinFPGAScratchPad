@@ -323,7 +323,10 @@ module h80cpu #(
          end
          16'b0000_1010_zzzz_zzzz: begin  //  0 1010_aaaa_bbbb DJNZ A, (B)
                                          //  (decrement A and jump to B if A is not zero)
-            // TODO
+            if (regs[ins[7:4]] != 'h1) begin
+               `register(reg_pc, regs[reg_pc] + regs[ins[3:0]]);
+            end
+            regs[ins[7:4]] <= regs[ins[7:4]] - 1;
          end
          16'b0000_110z_zzzz_zzzz: begin  //  0 110a_aaaa_bbbb EX A, B
             // TODO
