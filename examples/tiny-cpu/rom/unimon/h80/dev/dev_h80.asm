@@ -15,6 +15,7 @@ CONIN:
 CONST:
 	XOR	res,res
 	IN.B	res,(CONSTAT)
+	OR	res,res
 	RET
 
 CONOUT:
