@@ -17,9 +17,12 @@ module h80cpu_io #(
    
    `include "h80bus.svh"
 
+   localparam LINE_DELAY = 2000000;
+
    reg [1:0] state;
    reg [BUS_DATA_WIDTH-1:0] data;
    int file_handle = 0;
+   int line_delay = 0;
 
    assign data_ = (!ce_n && cmd[0]) ? data : {BUS_DATA_WIDTH{1'bz}};
 
@@ -33,6 +36,9 @@ module h80cpu_io #(
    endtask
 
    always @(posedge clk) begin
+      if (0 < line_delay) begin
+         line_delay <= line_delay - 1;
+      end
       if (reset) begin
          state <= 0;
       end else begin
@@ -55,12 +61,15 @@ module h80cpu_io #(
                         data <= 8'h00;
                      end else begin
                         data <= input_data;
+                        if (input_data == 'h0d || input_data == 'h0a) begin
+                           line_delay = LINE_DELAY;
+                        end
                      end
                   end
                end
                'h0001: begin
                   if (cmd == bus_cmd_read_b) begin
-                     if (file_handle != 0) begin
+                     if (file_handle != 0 && line_delay == 0) begin
                         data <= 8'b0000_0001;
                      end else begin
                         data <= 8'b0000_0000;
