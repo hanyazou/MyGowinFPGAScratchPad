@@ -225,11 +225,10 @@ WSTART:
 	CALL	UPPER
 	OR	res,res
 	JR	Z,WSTART
-	HALT
-	IF 0                    ; XXX
 
-	CP	'D'
+	CP	res,'D'
 	JR	Z,DUMP
+	IF 0                    ; XXX
 	CP	'G'
 	JP	Z,GO
 	CP	'S'
@@ -252,9 +251,12 @@ WSTART:
 	JP	Z,REG
 	ENDIF
 
+        ENDIF                   ; XXX
+
 ERR:
-	LD	HL,ERRMSG
+	LD	arg0,ERRMSG
 	CALL	STROUT
+	HALT                    ; XXX
 	JR	WSTART
 
 ;;; 
@@ -262,155 +264,156 @@ ERR:
 ;;; 
 
 DUMP:
-	INC	HL
+	ADD	arg0,1
 	CALL	SKIPSP
 	CALL	RDHEX		; 1st arg.
-	LD	A,C
-	OR	A
+	OR	res1,res1	; number of digits
 	JR	NZ,DP0
 	;; No arg.
 	CALL	SKIPSP
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JR	NZ,ERR
-	LD	HL,(DSADDR)
-	LD	BC,128
-	ADD	HL,BC
-	LD	(DEADDR),HL
+	LD.W	tmp,(DSADDR)
+	ADD	tmp,128
+	LD.W	(DEADDR),tmp
 	JR	DPM
 
 	;; 1st arg. found
 DP0:
-	LD	(DSADDR),DE
+	LD.W	(DSADDR),arg1   ; value of 1st arg.
 	CALL	SKIPSP
-	LD	A,(HL)
-	CP	','
+	CP	res0,','
 	JR	Z,DP1
-	OR	A
+	OR	res0,res0
 	JR	NZ,ERR
 	;; No 2nd arg.
-	LD	HL,128
-	ADD	HL,DE
-	LD	(DEADDR),HL
+	ADD	arg1,128
+	LD.W	(DEADDR),arg1
 	JR	DPM
 DP1:
-	INC	HL
+	ADD	arg0,1          ; skip ','
 	CALL	SKIPSP
 	CALL	RDHEX
 	CALL	SKIPSP
-	LD	A,C
-	OR	A
+	OR	res1,res1       ; number of digits
 	JR	Z,ERR
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JP	NZ,ERR
-	INC	DE
-	LD	(DEADDR),DE
+	ADD	arg1,1		; value of 2nd arg.
+	LD.W	(DEADDR),arg1
 DPM:
 	;; DUMP main
-	LD	HL,(DSADDR)
-	LD	A,0F0H
-	AND	A,L
-	LD	L,A
-	XOR	A
-	LD	(DSTATE),A
+	XOR	arg0,arg0
+	LD.W	arg0,(DSADDR)
+	AND	arg0,0FFF0H
+	XOR	tmp,tmp
+	LD.B	(DSTATE),tmp
+
 DPM0:
-	PUSH	HL
+	PUSH	arg0
 	CALL	DPL
-	POP	HL
-	LD	BC,16
-	ADD	HL,BC
+	POP	arg0
+	ADD	arg0,16
 	CALL	CONST
 	JR	NZ,DPM1
-	LD	A,(DSTATE)
-	CP	2
+	LD.B	res0,(DSTATE)
+	CP	res0,2
 	JR	C,DPM0
-	LD	HL,(DEADDR)
-	LD	(DSADDR),HL
+	LD	arg0,(DEADDR)
+	LD	(DSADDR),arg0
 	JP	WSTART
 DPM1:
-	LD	(DSADDR),HL
+	LD.W	(DSADDR),arg0
 	CALL	CONIN
 	JP	WSTART
 
 DPL:
 	;; DUMP line
 	CALL	HEXOUT4
-	PUSH	HL
-	LD	HL,DSEP0
+        IF 0
+	PUSH	arg0
+	NOP                     ; XXX Here, without two NOPs, 
+	NOP                     ; the LD after the PUSH does not work correctly.
+	ELSE
+	LD	tmp,arg0
+        ENDIF
+	LD	arg0,DSEP0
 	CALL	STROUT
-	POP	HL
-	LD	IX,INBUF
-	LD	B,16
+        IF 0
+	POP	arg0
+	ELSE
+	LD	arg0,tmp
+        ENDIF
+	LD	v0,INBUF
+	LD	v1,16
 DPL0:
 	CALL	DPB
-	DJNZ	DPL0
+	DJNZ	v1,DPL0
 
-	LD	HL,DSEP1
+	LD	arg0,DSEP1
 	CALL	STROUT
 
-	LD	HL,INBUF
-	LD	B,16
+	LD	arg0,INBUF
+	LD	v1,16
+
 DPL1:
-	LD	A,(HL)
-	INC	HL
-	CP	' '
+	LD.B	res0,(arg0)
+	ADD	arg0,1
+	CP	res0,' '
 	JR	C,DPL2
-	CP	7FH
+	CP	res0,7FH
 	JR	NC,DPL2
 	CALL	CONOUT
 	JR	DPL3
 DPL2:
-	LD	A,'.'
+	LD.B	res0,'.'
 	CALL	CONOUT
 DPL3:
-	DJNZ	DPL1
+	DJNZ	v1,DPL1
 	JP	CRLF
 
 DPB:	; Dump byte
-	LD	A,' '
+	LD	res0,' '
 	CALL	CONOUT
-	LD	A,(DSTATE)
-	OR	A
+	XOR	tmp,tmp
+	LD.B	tmp,(DSTATE)
+	OR	tmp,tmp
 	JR	NZ,DPB2
 	; Dump state 0
-	LD	A,(DSADDR)	; Low byte
-	CP	L
-	JR	NZ,DPB0
-	LD	A,(DSADDR+1)	; High byte
-	CP	H
+	XOR	tmp,tmp
+	LD.W	tmp,(DSADDR)
+	CP	tmp,arg0
 	JR	Z,DPB1
 DPB0:	; Still 0 or 2
-	LD	A,' '
+	LD.B	res0,' '
 	CALL	CONOUT
 	CALL	CONOUT
-	LD	(IX),A
-	INC	HL
-	INC	IX
+	LD.B	(v0),res0
+	ADD	arg0,1
+	ADD	v0,1
 	RET
 DPB1:	; Found start address
-	LD	A,1
-	LD	(DSTATE),A
+	LD.B	tmp,1
+	LD.B	(DSTATE),tmp
 DPB2:
-	LD	A,(DSTATE)
-	CP	1
+	LD.B	tmp,(DSTATE)
+	CP	tmp,1
 	JR	NZ,DPB0
 	; Dump state 1
-	LD	A,(HL)
-	LD	(IX),A
+	LD.B	res0,(arg0)
+	LD.B	(v0),res0
 	CALL	HEXOUT2
-	INC	HL
-	INC	IX
-	LD	A,(DEADDR)	; Low byte
-	CP	L
-	RET	NZ
-	LD	A,(DEADDR+1)	; High byte
-	CP	H
+	ADD	arg0,1
+	ADD	v0,1
+	LD.W	tmp,(DEADDR)	; Low byte
+	CP	arg0,tmp
 	RET	NZ
 	; Found end address
-	LD	A,2
-	LD	(DSTATE),A
+	LD.B	tmp,2
+	LD.B	(DSTATE),tmp
 	RET
+
+	IF 0                    ; XXX
 
 ;;;
 ;;; GO address
@@ -1248,15 +1251,15 @@ STROUT:
 	JR	STROUT
 
 HEXOUT4:
-	PUSH	arg0
-	SRA	arg0,8
-	CALL	HEXOUT2
-	POP	arg0
-HEXOUT2:
 	LD	res0,arg0
+	SRA	res0,8
+	CALL	HEXOUT2
+	LD	res0,arg0
+HEXOUT2:
+	LD	tmp,res0
 	SRA	res0,4
 	CALL	HEXOUT1
-	LD	res0,arg0
+	LD	res0,tmp
 HEXOUT1:
 	AND	res0,0FH
 	ADD	res0,'0'
@@ -1361,46 +1364,33 @@ UPPER:
 	ADD	res,'A'-'a'
 	RET
 
-	IF 0                    ; XXX
-
 RDHEX:
-	LD	C,0
-	LD	DE,0
+	XOR	arg1,arg1	; value
+	XOR	res1,res1	; number of digits
 RH0:
-	LD	A,(HL)
-	CALL	UPPER
-	CP	'0'
-	JR	C,RHE
-	CP	'9'+1
-	JR	C,RH1
-	CP	'A'
-	JR	C,RHE
-	CP	'F'+1
-	JR	NC,RHE
-	SUB	'A'-'9'-1
+	XOR	res,res
+	LD.B	res,(arg0)
+ 	CALL	UPPER
+	CP	res,'0'
+ 	JR	C,RHE
+	CP	res,'9'+1
+ 	JR	C,RH1
+	CP	res,'A'
+ 	JR	C,RHE
+	CP	res,'F'+1
+ 	JR	NC,RHE
+	SUB	res,'A'-'9'-1
 RH1:
-	SUB	'0'
-	RLA
-	RLA
-	RLA
-	RLA
-	RLA
-	RL	E
-	RL	D
-	RLA
-	RL	E
-	RL	D
-	RLA
-	RL	E
-	RL	D
-	RLA
-	RL	E
-	RL	D
-	INC	HL
-	INC	C
-	JR	RH0
+	SUB	res,'0'
+	SL	arg1,4
+	OR	arg1,res
+	ADD	arg0,1
+	ADD	res1,1
+ 	JR	RH0
 RHE:
-	RET
+ 	RET
+
+	IF 0                    ; XXX
 
 ;;;
 ;;; RST 30H Handler
