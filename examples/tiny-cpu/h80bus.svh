@@ -8,3 +8,6 @@ localparam bus_cmd_read_w =  3'b011;
 localparam bus_cmd_write_b = 3'b100;
 localparam bus_cmd_read_b =  3'b101;
 localparam bus_cmd_none =    3'b111;
+function bit bus_cmd_is_read(bus_cmd_t cmd);
+   return cmd[0];
+endfunction
