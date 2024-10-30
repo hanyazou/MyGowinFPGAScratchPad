@@ -46,7 +46,7 @@ module h80cpu #(
    assign mreq_n_ = !(bus_num == BUS_MEM && bus_cmd != bus_cmd_none);
    assign bus_addr_ = bus_addr;
    assign bus_cmd_ = bus_cmd;
-   assign bus_data_ = !bus_cmd[0] ? bus_wr_data : {BUS_DATA_WIDTH{1'bz}}; 
+   assign bus_data_ = !bus_cmd_is_read(bus_cmd) ? bus_wr_data : {BUS_DATA_WIDTH{1'bz}}; 
    assign ins = ins_t'(bus_data_);
 
    task start_instruction_fetch(bus_addr_t addr);
@@ -484,7 +484,7 @@ module h80cpu #(
             else
               regs[bus_rd_reg] <= { { CPU_REG_WIDTH-8 {1'b0} }, bus_data_[7:0] };
          end
-         if (bus_rd_reg == reg_pc) begin
+         if (bus_cmd_is_read(bus_cmd) && bus_rd_reg == reg_pc) begin
             start_instruction_fetch(bus_data_);
          end else begin
             start_instruction_fetch(regs[reg_pc]);
