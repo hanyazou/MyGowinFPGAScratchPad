@@ -600,6 +600,50 @@ module main();
 
    endtask // tb_test_stack
 
+   task tb_test_ret_push();
+      bus_addr_t addr;
+      bus_data_t data;
+      int saved_assertion_failures;
+
+      tb_begin("test_ret_push");
+      cpu_init();
+
+      addr = 'h0100;
+      `cpu_mem(addr, I_RET());               // RET
+
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 2000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, r0
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 0100h
+      `cpu_mem(addr, 'h0100);
+
+      `cpu_mem(addr, I_LD_R_I(4));           // LD.W r4, 00000000h
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, 'h0000);
+
+      `cpu_mem(addr, I_CALL_R(0));           // CALL r0
+      `cpu_mem(addr, I_PUSH_R(4));           // PUSH r4
+      `cpu_mem(addr, I_LD_RW_I(4));          // LD.W r4.w, 89abh
+      `cpu_mem(addr, 'h89ab);
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_run();
+      saved_assertion_failures = tb_assertion_failures;
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(4) === 'h89ab);
+      `tb_assert(regs(reg_sp) === 'h2000 - 2);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end else begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      tb_end();
+
+   endtask // tb_test_ret_push
+
    task tb_test_1reg_opr(ins_t ins, reg_num_t r, reg_t prev, reg_t result);
       bus_addr_t addr;
       int saved_assertion_failures;
@@ -1357,6 +1401,7 @@ module main();
       end
       tb_test_move();
       tb_test_stack();
+      tb_test_ret_push();
       tb_test_1reg_oprs();
       tb_test_oprations();
       tb_test_jumps();
