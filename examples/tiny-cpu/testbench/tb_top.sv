@@ -644,6 +644,74 @@ module main();
 
    endtask // tb_test_ret_push
 
+   task tb_test_ex();
+      bus_addr_t addr;
+      bus_data_t data;
+      int saved_assertion_failures;
+
+      tb_begin("test_ex");
+      cpu_init();
+
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 0cdefh
+      `cpu_mem(addr, 'hcdef);
+      `cpu_mem(addr, I_LD_R_R(20, 0));       // LD r20, r0
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 0123h
+      `cpu_mem(addr, 'h0123);
+      `cpu_mem(addr, I_LD_RW_I(1));          // LD.W r1, 4567h
+      `cpu_mem(addr, 'h4567);
+      `cpu_mem(addr, I_LD_RW_I(2));          // LD.W r2, 89abh
+      `cpu_mem(addr, 'h89ab);
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_run();
+      saved_assertion_failures = tb_assertion_failures;
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h0123);
+      `tb_assert(regs(1) === 'h4567);
+      `tb_assert(regs(2) === 'h89ab);
+      `tb_assert(regs(20) === 'hcdef);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end else begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      `cpu_mem(addr, I_EX_R_R(0,20));        // EX r0, r20
+      `cpu_mem(addr, I_EX_R_R(1,2));         // EX r1, r2
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_cont();
+      saved_assertion_failures = tb_assertion_failures;
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'hcdef);
+      `tb_assert(regs(1) === 'h89ab);
+      `tb_assert(regs(2) === 'h4567);
+      `tb_assert(regs(20) === 'h0123);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end else begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      `cpu_mem(addr, I_EX_R_R(20,0));        // EX r0, r20
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_cont();
+      saved_assertion_failures = tb_assertion_failures;
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(0) === 'h0123);
+      `tb_assert(regs(20) === 'hcdef);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end else begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      tb_end();
+
+   endtask // tb_test_ex
+
    task tb_test_1reg_opr(ins_t ins, reg_num_t r, reg_t prev, reg_t result);
       bus_addr_t addr;
       int saved_assertion_failures;
@@ -1402,6 +1470,7 @@ module main();
       tb_test_move();
       tb_test_stack();
       tb_test_ret_push();
+      tb_test_ex();
       tb_test_1reg_oprs();
       tb_test_oprations();
       tb_test_jumps();

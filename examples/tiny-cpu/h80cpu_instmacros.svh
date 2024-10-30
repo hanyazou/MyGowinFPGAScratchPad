@@ -105,7 +105,7 @@ function [15:0] I_EX_R_R(reg_num_t a, b);
    if (a[4] && ~b[4])
      return { 4'h0, 3'b110, a[4:0], b[3:0] };
    else
-   if (~a[4] && b[4])
+   if ((~a[4] && b[4]) || (~a[4] && ~b[4]))
      return { 4'h0, 3'b110, b[4:0], a[3:0] };
    else
      return I_INV();

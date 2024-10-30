@@ -329,7 +329,8 @@ module h80cpu #(
             regs[ins[7:4]] <= regs[ins[7:4]] - 1;
          end
          16'b0000_110z_zzzz_zzzz: begin  //  0 110a_aaaa_bbbb EX A, B
-            // TODO
+            regs[ins[8:4]] <= regs[ins[3:0]];
+            regs[ins[3:0]] <= regs[ins[8:4]];
          end
          //  0 1110_aaaa_bbbb reserved 空き
          //  0 1111_aaaa_bbbb reserved 空き
