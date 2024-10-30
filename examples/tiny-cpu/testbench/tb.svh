@@ -21,9 +21,9 @@
    task tb_end();
       tb_count++;
       if (tb_assertion_failures === 0) begin
-         $display("testbenchi: %s ... pass", tb_name);
+         $display("testbench: %s ... pass", tb_name);
       end else begin
-         $display("testbenchi: %s ... FAILED", tb_name);
+         $display("testbench: %s ... FAILED", tb_name);
          tb_errors++;
       end
    endtask
@@ -31,9 +31,9 @@
    task tb_finish();
       $display("");
       if (tb_errors === 0) begin
-         $display("testbenchi: %1d test%0s succeeded", tb_count, tb_count !== 1 ? "s" : "");
+         $display("testbench: %1d test%0s succeeded", tb_count, tb_count !== 1 ? "s" : "");
       end else begin
-         $display("testbenchi: %1d/%1d test%0s FAILED", tb_errors, tb_count,
+         $display("testbench: %1d/%1d test%0s FAILED", tb_errors, tb_count,
             tb_errors !== 1 ? "s" : "");
       end
       $display("");
