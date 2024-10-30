@@ -24,7 +24,7 @@ USE_IDENT = 1			; CPU Identification
 
 USE_REGCMD = 0			; R(egister) command and related functions
 
-USE_RAMCHK = 1			; Check RAM (Must be 1 for DRAM)
+USE_RAMCHK = 0			; Check RAM (Must be 1 for DRAM)
 
 USE_WARMUP = 0			; DRAM warming up
 	IF USE_WARMUP

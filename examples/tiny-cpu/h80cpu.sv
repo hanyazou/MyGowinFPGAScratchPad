@@ -55,6 +55,9 @@ module h80cpu #(
    endtask // start_instruction_fetch
 
    task bus_run_cmd(bus_num_t bus, bus_cmd_t cmd, bus_addr_t addr);
+      $display("state=%1d, pc=%h, ins=%h, bus_rw: reg=%d, cmd=%d, addr=%h, data=%h",
+               state,
+               regs[reg_pc], ins, bus_rd_reg, cmd, addr, bus_data_[15:0]);
       bus_cmd <= cmd;
       bus_addr <= addr;
       bus_num <= bus;
@@ -148,6 +151,7 @@ module h80cpu #(
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
             regs[reg_sp] <= regs[reg_sp] + 2;
             do_memory_access = 1;
+            $display("do_memory_access: RET");
          end
          // 0000_0000_0000_0011 to 0111_1110 reserved
          16'b0000_0000_0111_1111: begin  //  0 0000_0111_1111 INV 無効な命令
@@ -162,6 +166,7 @@ module h80cpu #(
                bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
                regs[reg_sp] <= regs[reg_sp] + 2;
                do_memory_access = 1;
+               $display("do_memory_access: RET cond");
             end
          end
          // 0000_0000_1000_1000 to 1110_1111 reserved
@@ -172,12 +177,14 @@ module h80cpu #(
             bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_pc] + 2);
             next_ins_addr = regs[reg_pc] + 6;
             do_memory_access = 1;
+            $display("do_memory_access: LD r%0d,nnnnnn", ins[3:0]);
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
             bus_wr_data <= regs[ins[3:0]];
             bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
             regs[reg_sp] <= regs[reg_sp] - 2;
             do_memory_access = 1;
+            $display("do_memory_access: PUSH");
          end
          16'b0000_0001_0001_zzzz: begin  //  0 0001_0001_rrrr POP R
             bus_rd_reg <= ins[3:0];
@@ -185,6 +192,7 @@ module h80cpu #(
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
             regs[reg_sp] <= regs[reg_sp] + 2;
             do_memory_access = 1;
+            $display("do_memory_access: POP");
          end
          16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
                                          //  (copy R[15] for sign extension)
@@ -224,6 +232,7 @@ module h80cpu #(
             bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_pc] + 2);
             next_ins_addr = regs[reg_pc] + 4;
             do_memory_access = 1;
+            $display("do_memory_access: LD r%0d, nnnn", ins[3:0]);
          end
          16'b0000_0001_1000_zzzz: begin  //  0 0001_1000_ffff INVF (invert flag F)
             regs[reg_flag] <= regs[reg_flag] ^ (16'b1 << ins[3:0]);
@@ -243,6 +252,7 @@ module h80cpu #(
             regs[reg_sp] <= regs[reg_sp] - 2;
             next_ins_addr = regs[ins[3:0]];
             do_memory_access = 1;
+            $display("do_memory_access: CALL");
          end
          16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_nnnn RST n (call address n * 8)
             bus_wr_data <= regs[reg_pc] + 2;
@@ -250,6 +260,7 @@ module h80cpu #(
             regs[reg_sp] <= regs[reg_sp] - 2;
             next_ins_addr = bus_addr_t'(ins[3:0] * 8);
             do_memory_access = 1;
+            $display("do_memory_access: RST n");
          end
          16'b0000_0001_1110_zzzz: begin  //  0 0001_1110_rrrr JP R
             `register(reg_pc, regs[ins[3:0]]);
@@ -266,6 +277,7 @@ module h80cpu #(
                regs[reg_sp] <= regs[reg_sp] - 2;
                next_ins_addr = regs[ins[3:0]];
                do_memory_access = 1;
+               $display("do_memory_access: CALL cond,");
             end
          end
          //  0 0010_10ff_rrrr reserved 空き
@@ -357,6 +369,7 @@ module h80cpu #(
             bus_rd_extend_mode <= bus_rd_extend_none;
             bus_run_cmd(bus(ins[8]), ins[11:9], regs[ins[3:0]]);
             do_memory_access = 1;
+            $display("do_memory_access: b0011_%0d%0d%0d%0d", ins[11], ins[10], ins[9], ins[8]);
          end
 
          //
@@ -434,13 +447,18 @@ module h80cpu #(
          endcase // casez (ins)
 
          regs[reg_pc] <= next_ins_addr[CPU_REG_WIDTH-1:0];
-         if (do_memory_access)
+         if (do_memory_access) begin
+            $display("do_memory_access");
             state <= S_BUS_RW;
-         else
+         end else begin
             start_instruction_fetch(next_ins_addr);
+         end
 
       end // case: S_FETCH_EXEC
       S_BUS_RW: begin  // memory access completion
+         $display("state=%1d, pc=%h, ins=%h, BUS_RW: reg=%d, cmd=%d, addr=%h, data=%h",
+                  state,
+                  regs[reg_pc], ins, bus_rd_reg, bus_cmd, bus_addr, bus_data_[15:0]);
          if (bus_cmd == bus_cmd_read) begin
             regs[bus_rd_reg] <= bus_data_;
          end

@@ -10,6 +10,14 @@ module main();
       io0.open_input_file("tb_mon_input.txt");
       cpu_init();
       cpu_run();
+$display("### arg0=%h, arg1=%h, res0=%h, res1=%h",
+         cpu0.regs[4], cpu0.regs[5], cpu0.regs[2], cpu0.regs[3]);
+$display("### pc=%h, sp=%h", cpu0.regs[reg_pc], cpu0.regs[reg_sp]);
+reg_dump(0, CPU_NUMREGS - 1);
+mem_dump('h0100, 48);
+mem_dump('h02b0, 32);
+mem_dump('h0f00, 32);
+mem_dump('h0fe0, 16);
       tb_end();
       io0.close_input_file();
 
@@ -599,6 +607,46 @@ module main();
       tb_end();
 
    endtask // tb_test_stack
+
+   task tb_test_push();
+      bus_addr_t addr;
+      bus_data_t data;
+      int saved_assertion_failures;
+
+      tb_begin("test_push");
+      cpu_init();
+
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W a0, 2000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, a0
+      `cpu_mem(addr, I_NOP());               // NOP
+      `cpu_mem(addr, I_NOP());               // NOP
+
+      `cpu_mem(addr, I_LD_R_I(4));           // LD.W r4, 01234567h
+      `cpu_mem(addr, 'h4567);
+      `cpu_mem(addr, 'h0123);
+      `cpu_mem(addr, I_NOP());               // NOP
+      `cpu_mem(addr, I_NOP());               // NOP
+      `cpu_mem(addr, I_PUSH_R(4));           // PUSH r4
+      `cpu_mem(addr, I_LD_RW_I(4));          // LD.W r4.w, 89abh
+      `cpu_mem(addr, 'h89ab);
+      `cpu_mem(addr, I_HALT());              // HALT
+
+      cpu_run();
+      saved_assertion_failures = tb_assertion_failures;
+      `tb_assert(regs(reg_pc) === addr);
+      `tb_assert(regs(4) === 'h89ab);
+      `tb_assert(regs(reg_sp) === 'h2000 - 2);
+      if (saved_assertion_failures != tb_assertion_failures) begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end else begin
+         reg_dump(0, CPU_NUMREGS - 1);
+      end
+
+      tb_end();
+
+   endtask // tb_test_push
 
    task tb_test_1reg_opr(ins_t ins, reg_num_t r, reg_t prev, reg_t result);
       bus_addr_t addr;
@@ -1349,6 +1397,7 @@ module main();
    initial begin
       tb_init();
       tb_test_rom();
+/*
       tb_test00();
       tb_test_dump_inst();
       tb_test_LD_r_nnnn();
@@ -1357,11 +1406,15 @@ module main();
       end
       tb_test_move();
       tb_test_stack();
+*/
+      tb_test_push();
+/*
       tb_test_1reg_oprs();
       tb_test_oprations();
       tb_test_jumps();
       tb_test_hello();
       tb_test_mandelbrot();
+*/
       tb_finish();
    end
 

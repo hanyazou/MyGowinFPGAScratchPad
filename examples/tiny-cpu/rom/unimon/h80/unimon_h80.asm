@@ -330,16 +330,19 @@ DPM1:
 DPL:
 	;; DUMP line
 	CALL	HEXOUT4
-        IF 0
+        IF 1
 	PUSH	arg0
-	NOP                     ; XXX Here, without two NOPs, 
-	NOP                     ; the LD after the PUSH does not work correctly.
+	IF 1
+        NOP                     ; XXX Here, without two NOPs, 
+        NOP                     ; the LD after the PUSH does not work correctly.
+	ENDIF
 	ELSE
 	LD	tmp,arg0
         ENDIF
 	LD	arg0,DSEP0
+	HALT                    ; XXX
 	CALL	STROUT
-        IF 0
+        IF 1
 	POP	arg0
 	ELSE
 	LD	arg0,tmp
