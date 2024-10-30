@@ -608,26 +608,30 @@ mem_dump('h0fe0, 16);
 
    endtask // tb_test_stack
 
-   task tb_test_push();
+   task tb_test_ret_push();
       bus_addr_t addr;
       bus_data_t data;
       int saved_assertion_failures;
 
-      tb_begin("test_push");
+      tb_begin("test_ret_push");
       cpu_init();
 
-      addr = 'h0000;
-      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W a0, 2000h
-      `cpu_mem(addr, 'h2000);
-      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, a0
-      `cpu_mem(addr, I_NOP());               // NOP
-      `cpu_mem(addr, I_NOP());               // NOP
+      addr = 'h0100;
+      `cpu_mem(addr, I_RET());               // RET
 
-      `cpu_mem(addr, I_LD_R_I(4));           // LD.W r4, 01234567h
-      `cpu_mem(addr, 'h4567);
-      `cpu_mem(addr, 'h0123);
-      `cpu_mem(addr, I_NOP());               // NOP
-      `cpu_mem(addr, I_NOP());               // NOP
+      addr = 'h0000;
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 2000h
+      `cpu_mem(addr, 'h2000);
+      `cpu_mem(addr, I_LD_R_R(reg_sp, 0));   // LD sp, r0
+
+      `cpu_mem(addr, I_LD_RW_I(0));          // LD.W r0, 0100h
+      `cpu_mem(addr, 'h0100);
+
+      `cpu_mem(addr, I_LD_R_I(4));           // LD.W r4, 00000000h
+      `cpu_mem(addr, 'h0000);
+      `cpu_mem(addr, 'h0000);
+
+      `cpu_mem(addr, I_CALL_R(0));           // CALL r0
       `cpu_mem(addr, I_PUSH_R(4));           // PUSH r4
       `cpu_mem(addr, I_LD_RW_I(4));          // LD.W r4.w, 89abh
       `cpu_mem(addr, 'h89ab);
@@ -646,7 +650,7 @@ mem_dump('h0fe0, 16);
 
       tb_end();
 
-   endtask // tb_test_push
+   endtask // tb_test_ret_push
 
    task tb_test_1reg_opr(ins_t ins, reg_num_t r, reg_t prev, reg_t result);
       bus_addr_t addr;
@@ -1407,7 +1411,7 @@ mem_dump('h0fe0, 16);
       tb_test_move();
       tb_test_stack();
 */
-      tb_test_push();
+      tb_test_ret_push();
 /*
       tb_test_1reg_oprs();
       tb_test_oprations();
