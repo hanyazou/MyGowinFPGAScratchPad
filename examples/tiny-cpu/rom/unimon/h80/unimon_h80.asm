@@ -36,8 +36,6 @@ TARGET:	equ	"H80"
 	;; ORG	0028H
 	;; JP	EEWRITE
 
-	IF 0                    ; XXX
-
 	ORG	0030H
 	JP	RST30H
 
@@ -71,8 +69,6 @@ E_CONIN:
 	ORG	ENTRY+40	; Console status
 E_CONST:
 	JP	CONST
-
-	ENDIF                   ; XXX
 
 	;;
 	;;
@@ -1376,8 +1372,6 @@ RH1:
 RHE:
  	RET
 
-	IF 0                    ; XXX
-
 ;;;
 ;;; RST 30H Handler
 ;;;
@@ -1495,8 +1489,6 @@ R381:
 	RET
 
 	ENDIF
-
-	ENDIF                   ; XXX
 
 ;;;
 ;;; Messages
