@@ -228,12 +228,12 @@ WSTART:
 
 	CP	res,'D'
 	JR	Z,DUMP
-	IF 0                    ; XXX
-	CP	'G'
+	CP	res,'G'
 	JP	Z,GO
-	CP	'S'
+	CP	res,'S'
 	JP	Z,SETM
 
+	IF 0                    ; XXX
 	CP	'L'
 	JP	Z,LOADH
 	CP	'P'
@@ -403,21 +403,18 @@ DPB2:
 	LD.B	(DSTATE),tmp
 	RET
 
-	IF 0                    ; XXX
-
 ;;;
 ;;; GO address
 ;;; 
 
 GO:
-	INC	HL
+	INC	arg0
 	CALL	SKIPSP
 	CALL	RDHEX
-	LD	A,(HL)
-	OR	A
+	LD.B	tmp,(arg0)
+	OR	tmp,tmp
 	JP	NZ,ERR
-	LD	A,C
-	OR	A
+	OR	res1,res1
 	JR	Z,G0
 
 	IF USE_REGCMD
@@ -475,10 +472,10 @@ G1:
 
 	ELSE
 	
-	LD	(GADDR),DE
+	LD	(GADDR),arg1
 G0:
-	LD	HL,(GADDR)
-	JP	(HL)
+	LD	tmp,(GADDR)
+	JP	(tmp)
 
 	ENDIF
 
@@ -487,65 +484,64 @@ G0:
 ;;; 
 
 SETM:
-	INC	HL
+	INC	arg0
 	CALL	SKIPSP
 	CALL	RDHEX
 	CALL	SKIPSP
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JP	NZ,ERR
-	LD	A,C
-	OR	A
+	OR	res1,res1
 	JR	NZ,SM0
-	LD	DE,(SADDR)
+	XOR	arg1,arg1
+	LD.W	arg1,(SADDR)
 SM0:
-	EX	DE,HL
+	EX	arg1,arg0
 SM1:
 	CALL	HEXOUT4
-	PUSH	HL
-	LD	HL,DSEP1
+	PUSH	arg0
+	LD	arg0,DSEP1
 	CALL	STROUT
-	POP	HL
-	LD	A,(HL)
-	PUSH	HL
+	POP	arg0
+	LD	tmp,(arg0)
+	PUSH	arg0
 	CALL	HEXOUT2
-	LD	A,' '
+	LD	res0,' '
 	CALL	CONOUT
 	CALL	GETLIN
-	LD	HL,INBUF
+	LD	arg0,INBUF
 	CALL	SKIPSP
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JR	NZ,SM2
 	;; Empty  (Increment address)
-	POP	HL
-	INC	HL
-	LD	(SADDR),HL
+	POP	arg0
+	INC	arg0
+	LD	(SADDR),arg0
 	JR	SM1
 SM2:
-	CP	'-'
+	CP	res0,'-'
 	JR	NZ,SM3
 	;; '-'  (Decrement address)
-	POP	HL
-	DEC	HL
-	LD	(SADDR),HL
+	POP	arg0
+	DEC	arg0
+	LD	(SADDR),arg0
 	JR	SM1
 SM3:
-	CP	'.'
+	CP	res0,'.'
 	JR	NZ,SM4
-	POP	HL
-	LD	(SADDR),HL
+	POP	arg0
+	LD	(SADDR),arg0
 	JP	WSTART
 SM4:
 	CALL	RDHEX
-	LD	A,C
-	OR	A
-	POP	HL
+	OR	res1,res1
+	POP	arg0
 	JP	Z,ERR
-	LD	(HL),E
-	INC	HL
-	LD	(SADDR),HL
+	LD.B	(arg0),arg1
+	INC	arg0
+	LD	(SADDR),arg0
 	JR	SM1
+
+	IF 0                    ; XXX
 
 ;;;
 ;;; LOAD HEX file
