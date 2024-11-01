@@ -232,9 +232,11 @@ WSTART:
 	IF 0                    ; XXX
 	CP	'L'
 	JP	Z,LOADH
-	CP	'P'
+	ENDIF                   ; XXX
+	CP	res,'P'
 	JP	Z,SAVEH
 
+	IF 0                    ; XXX
 	CP	'I'
 	JP	Z,PIN
 	CP	'O'
@@ -694,167 +696,152 @@ LHSE:
 LHSR:
 	JP	WSTART
 	
+	ENDIF                   ; XXX
+
 ;;;
 ;;; SAVE HEX file
 ;;;
 
 SAVEH:
-	INC	HL
-	LD	A,(HL)
+	INC	arg0
+	XOR	res0,res0
+	LD.B	res0,(arg0)
 	CALL	UPPER
-	CP	'I'
+	CP	res0,'I'
 	JR	Z,SH0
-	CP	'S'
+	CP	res0,'S'
 	JR	NZ,SH1
 SH0:
-	INC	HL
-	LD	(HEXMOD),A
+	INC	arg0
+	LD.B	(HEXMOD),res0
 SH1:
 	CALL	SKIPSP
 	CALL	RDHEX
-	LD	A,C
-	OR	A
+	OR	res1,res1
 	JR	Z,SHE
-	PUSH	DE
-	POP	IX		; IX = Start address
+	LD	v0,arg1		; v0 = Start address
 	CALL	SKIPSP
-	LD	A,(HL)
-	CP	','
+	CP	res0,','
 	JR	NZ,SHE
-	INC	HL
+	INC	arg0
 	CALL	SKIPSP
-	CALL	RDHEX		; DE = End address
-	LD	A,C
-	OR	A
+	CALL	RDHEX		; arg1 = End address
+	OR	res1,res1	; res1 = Number of digits
 	JR	Z,SHE
 	CALL	SKIPSP
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JR	Z,SH2
 SHE:
 	JP	ERR
 
 SH2:
-	PUSH	IX
-	POP	HL
-	EX	DE,HL
-	INC	HL
-	OR	A
-	SBC	HL,DE		; HL = Length
+	LD	arg0,v0
+	EX	arg1,arg0
+	INC	arg0
+	SUB	arg0,arg1	; arg0 = Length
 SH3:
 	CALL	SHL
-	LD	A,H
-	OR	L
+	OR	arg0,arg0
 	JR	NZ,SH3
 
-	LD	A,(HEXMOD)
-	CP	'I'
+	XOR	tmp,tmp
+	LD.B	tmp,(HEXMOD)
+	CP	tmp,'I'
 	JR	NZ,SH4
 	;; End record for Intel HEX
-	LD	HL,IHEXER
+	LD	arg0,IHEXER
 	CALL	STROUT
 	JP	WSTART
 SH4:
 	;; End record for Motorola S record
-	LD	HL,SRECER
+	LD	arg0,SRECER
 	CALL	STROUT
 	JP	WSTART
 
 SHL:
-	LD	C,16
-	LD	A,H
-	OR	A
-	JR	NZ,SHL0
-	LD	A,L
-	CP	C
+	LD	v0,16		; v0 is line length, 16 or remain length
+	CP	arg0,v0
 	JR	NC,SHL0
-	LD	C,A
+	LD	v0,arg0		; remain length (< 16)
 SHL0:
-	LD	B,0
-	OR	A
-	SBC	HL,BC
-	LD	B,C
+	SUB	arg0,v0		; subtruct line length from total length
 
-	LD	A,(HEXMOD)
-	CP	'I'
-	JR	NZ,SHLS
+	XOR	tmp,tmp
+	LD.B	tmp,(HEXMOD)
+	CP	tmp,'I'
+	JR	NZ,SHLS		; HEXMOD != I means Motorola S record
 
 	;; Intel HEX
-	LD	A,':'
+	LD	res0,':'
 	CALL	CONOUT
 
-	LD	A,B
-	CALL	HEXOUT2		; Length
-	LD	C,B		; Checksum
+	LD	res0,v0		; output line length
+	CALL	HEXOUT2
+	LD	v1,v0		; v1 is checksum
 
-	LD	A,D
+	LD	res0,arg1	; output higher address
+	SRL	res0,8
+	ADD	v1,res0		; calculate checksum
 	CALL	HEXOUT2
-	LD	A,D
-	ADD	A,C
-	LD	C,A
 	
-	LD	A,E
+	AND	res0,arg1	; output lower address
+	AND	res0,0ffh
+	ADD	v1,res0		; calculate checksum
 	CALL	HEXOUT2
-	LD	A,E
-	ADD	A,C
-	LD	C,A
 	
-	XOR	A
+	XOR	res0,res0	; recode type ( 00 means data record)
 	CALL	HEXOUT2
 SHLI0:
-	LD	A,(DE)
-	PUSH	AF
+	XOR	res0,res0
+	LD.B	res0,(arg1)
+	ADD	v1,res0		; checksum
 	CALL	HEXOUT2
-	POP	AF
-	ADD	A,C
-	LD	C,A
 
-	INC	DE
-	DJNZ	SHLI0
+	INC	arg1
+	DJNZ	v0,SHLI0	; repeat for the length of line
 
-	LD	A,C
-	NEG	A
+	NEG	v1		; add checksum
+	LD	res0,v1
 	CALL	HEXOUT2
 	JP	CRLF
 
 SHLS:
 	;; Motorola S record
-	LD	A,'S'
+	LD	res0,'S'
 	CALL	CONOUT
-	LD	A,'1'
+	LD	res0,'1'
 	CALL	CONOUT
 
-	LD	A,B
-	ADD	A,2+1		; DataLength + 2(Addr) + 1(Sum)
-	LD	C,A
+	ADD	v0,2+1		; DataLength + 2(Addr) + 1(Sum)
+	LD	v1,v0		; v1 is checksum
+	LD	res,v0		; output length
 	CALL	HEXOUT2
 
-	LD	A,D
+	LD	res0,arg0	; output higher address
+	SRL	res0,8
+	LD	v1,res0		; calculate checksum
 	CALL	HEXOUT2
-	LD	A,D
-	ADD	A,C
-	LD	C,A
 	
-	LD	A,E
+	LD	res0,arg0	; output lower address
+	AND	res0,0ffh
+	LD	v1,res0		; calculate checksum
 	CALL	HEXOUT2
-	LD	A,E
-	ADD	A,C
-	LD	C,A
+
 SHLS0:
-	LD	A,(DE)
-	PUSH	AF
-	CALL	HEXOUT2		; Data
-	POP	AF
-	ADD	A,C
-	LD	C,A
+	XOR	res0,res0
+	LD.B	res0,(arg1)
+	ADD	v1,res0		; checksum
+	CALL	HEXOUT2
 
-	INC	DE
-	DJNZ	SHLS0
+	INC	arg1
+	DJNZ	v0,SHLS0	; repeat for the length of line
 
-	LD	A,C
-	CPL
+	CPL	v1		; add checksum
+	LD	res0,v1
 	CALL	HEXOUT2
 	JP	CRLF
+
+	IF 0                    ; XXX
 
 ;;;
 ;;; Port in
