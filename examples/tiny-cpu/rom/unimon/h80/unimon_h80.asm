@@ -229,10 +229,8 @@ WSTART:
 	CP	res,'S'
 	JP	Z,SETM
 
-	IF 0                    ; XXX
-	CP	'L'
+	CP	res,'L'
 	JP	Z,LOADH
-	ENDIF                   ; XXX
 	CP	res,'P'
 	JP	Z,SAVEH
 
@@ -539,39 +537,35 @@ SM4:
 	LD	(SADDR),arg0
 	JR	SM1
 
-	IF 0                    ; XXX
-
 ;;;
 ;;; LOAD HEX file
 ;;;
 
 LOADH:
-	INC	HL
+	INC	arg0
 	CALL	SKIPSP
 	CALL	RDHEX
 	CALL	SKIPSP
-	LD	A,(HL)
-	OR	A
+	OR	res0,res0
 	JP	NZ,ERR
 
-	LD	A,C
-	OR	A
+	OR	res1,res1	; number of digits
 	JR	NZ,LH0
 
-	LD	DE,0		;Offset
+	LD	arg1,0		; Offset
 LH0:
 	CALL	CONIN
 	CALL	UPPER
-	CP	'S'
+	CP	res0,'S'
 	JR	Z,LHS0
 LH1:
-	CP	':'
+	CP	res0,':'
 	JR	Z,LHI0
 LH2:
 	;; Skip to EOL
-	CP	CR
+	CP	res0,CR
 	JR	Z,LH0
-	CP	LF
+	CP	res0,LF
 	JR	Z,LH0
 LH3:
 	CALL	CONIN
@@ -579,124 +573,109 @@ LH3:
 
 LHI0:
 	CALL	HEXIN
-	LD	C,A		; Checksum
-	LD	B,A		; Length
+	LD	v1,res0		; Checksum
+	LD	v0,res0		; Length
 
 	CALL	HEXIN
-	LD	H,A		; Address H
-	ADD	A,C
-	LD	C,A
+	ADD	v1,res0		; Checksum
+	SL	res0,8
+	LD	arg0,res0	; Address H
 
 	CALL	HEXIN
-	LD	L,A		; Address L
-	ADD	A,C
-	LD	C,A
+	OR	arg0,res0	; Address L
+	ADD	v1,res0		; Checksum
 
 	;; Add offset
-	ADD	HL,DE
+	ADD	arg0,arg1
 
 	CALL	HEXIN
-	LD	(RECTYP),A
-	ADD	A,C
-	LD	C,A		; Checksum
+	LD.B	(RECTYP),res0
+	ADD	v1,res0		; Checksum
 
-	LD	A,B
-	OR	A
+	OR	v0,v0		; Length
 	JR	Z,LHI3
 LHI1:
 	CALL	HEXIN
-	PUSH	AF
-	ADD	A,C
-	LD	C,A		; Checksum
+	ADD	v1,res0		; Checksum
 
-	LD	A,(RECTYP)
-	OR	A
-	JR	NZ,LHI20
+	LD.B	tmp,(RECTYP)
+	OR	tmp,tmp
+	JR	NZ,LHI2
 
-	POP	AF
-	LD	(HL),A
-	INC	HL
-	JR	LHI2
-LHI20:
-	POP	AF
+	LD.B	(arg0),res0
+	INC	arg0
 LHI2:
-	DJNZ	LHI1
+	DJNZ	v0,LHI1
 LHI3:
 	CALL	HEXIN
-	ADD	A,C
+	ADD	v1,res0
+	AND	v1,0ffh
+	OR	v1,v1
 	JR	NZ,LHIE		; Checksum error
-	LD	A,(RECTYP)
-	OR	A
+	LD.B	tmp,(RECTYP)
+	OR	tmp,tmp
 	JP	Z,LH3
 	JP	WSTART
 LHIE:
-	LD	HL,IHEMSG
+	LD	arg0,IHEMSG
 	CALL	STROUT
 	JP	WSTART
 	
 LHS0:
 	CALL	CONIN
-	LD	(RECTYP),A
+	LD.B	(RECTYP),res0
 
 	CALL	HEXIN
-	LD	B,A		; Length+3
-	LD	C,A		; Checksum
+	LD	v0,res0		; Length+3
+	LD	v1,res0		; Checksum
 
 	CALL	HEXIN
-	LD	H,A
-	ADD	A,C
-	LD	C,A
+	ADD	v1,res0		; Checksum
+	SL	res0,8
+	LD	arg0,res0	; Address H
 	
 	CALL	HEXIN
-	LD	L,A
-	ADD	A,C
-	LD	C,A
+	OR	arg0,res0	; Address L
+	ADD	v1,res0		; Checksum
 
-	ADD	HL,DE
+	ADD	arg0,arg1
 
-	DEC	B
-	DEC	B
-	DEC	B
+	SUB	v0,3
 	JR	Z,LHS3
 LHS1:
 	CALL	HEXIN
-	PUSH	AF
-	ADD	A,C
-	LD	C,A		; Checksum
+	ADD	v1,res0		; Checksum
 
-	LD	A,(RECTYP)
-	CP	'1'
-	JR	NZ,LHS2
+	XOR	tmp,tmp
+	LD.B	tmp,(RECTYP)
+	CP	tmp,'1'
+	JR	NZ,LHS20
 
-	POP	AF
-	LD	(HL),A
-	INC	HL
-	JR	LHS20
-LHS2:
-	POP	AF
+	LD.B	(arg0),res0
+	INC	arg0
+
 LHS20:
-	DJNZ	LHS1
+	DJNZ	v0,LHS1
 LHS3:
 	CALL	HEXIN
-	ADD	A,C
-	CP	0FFH
-	JR	NZ,LHSE
+	ADD	v1,res0
+	AND	v1,0ffh
+	CP	v1,0FFH
+	JR	NZ,LHSE		; Checksum error
 
-	LD	A,(RECTYP)
-	CP	'7'
+	LD.B	tmp,(RECTYP)
+	CP	tmp,'7'
 	JR	Z,LHSR
-	CP	'8'
+	CP	tmp,'8'
 	JR	Z,LHSR
-	CP	'9'
+	CP	tmp,'9'
 	JR	Z,LHSR
 	JP	LH3
 LHSE:
-	LD	HL,SHEMSG
+	LD	arg0,SHEMSG
 	CALL	STROUT
 LHSR:
 	JP	WSTART
-	
-	ENDIF                   ; XXX
 
 ;;;
 ;;; SAVE HEX file
@@ -1237,8 +1216,6 @@ HEXOUT1:
 	ADD	res0,'A'-'9'-1
 	JP	CONOUT
 
-	IF 0                    ; XXX
-
 HEXIN:
 	XOR	res,res
 	CALL	HI0
@@ -1263,8 +1240,6 @@ HI1:
 HIR:
 	POP	v0
 	RET
-	
-	ENDIF                   ; XXX
 
 CRLF:
 	LD	res0,CR
