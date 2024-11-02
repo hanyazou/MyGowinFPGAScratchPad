@@ -160,7 +160,7 @@ IDE:
 
 	CALL    INIT
 
-	LD.W	tmp,8000H
+	LD.W	tmp,1000H
 	LD.W	(DSADDR),tmp
 	LD.W	(SADDR),tmp
 	LD.W	(GADDR),tmp
@@ -405,11 +405,11 @@ DPB2:
 GO:
 	INC	arg0
 	CALL	SKIPSP
-	CALL	RDHEX
-	LD.B	tmp,(arg0)
-	OR	tmp,tmp
+	CALL	RDHEX		; arg1=value, res1=number of digits
+	CALL	SKIPSP		; res0 is the first character that is a not space or null
+	OR	res0,res0	; error if any trailing garbege
 	JP	NZ,ERR
-	OR	res1,res1
+	OR	res1,res1	; no argument if number of digits is zero
 	JR	Z,G0
 
 	IF USE_REGCMD
@@ -467,9 +467,9 @@ G1:
 
 	ELSE
 	
-	LD	(GADDR),arg1
+	LD.W	(GADDR),arg1
 G0:
-	LD	tmp,(GADDR)
+	LD.W	tmp,(GADDR)
 	JP	(tmp)
 
 	ENDIF
@@ -497,7 +497,7 @@ SM1:
 	LD	arg0,DSEP1
 	CALL	STROUT
 	POP	arg0
-	LD	tmp,(arg0)
+	LD.B	res0,(arg0)
 	PUSH	arg0
 	CALL	HEXOUT2
 	LD	res0,' '
