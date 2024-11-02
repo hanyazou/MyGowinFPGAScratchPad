@@ -3,7 +3,8 @@ add_file ${PJD}/h80cpu_mem.sv
 add_file ${PJD}/h80cpu_io.sv
 add_file ${PJD}/../max7219-segleds/max7219.sv
 add_file ${PJD}/../max7219-segleds/sseg_decoder.sv
-add_file ${PJD}/../LicheeTang25k_SDRAM/LicheeTang25k_SDRAM/sdram/src/uart_tx_V2.v
+add_file ${PJD}/../../ip_cores/ben-marshall-uart/rtl/uart_tx.v
+add_file ${PJD}/../../ip_cores/ben-marshall-uart/rtl/uart_rx.v
 add_file ${PJD}/top.sv
 add_file ${PJD}/${BOARD}.cst
 set_device ${DEVICE}
