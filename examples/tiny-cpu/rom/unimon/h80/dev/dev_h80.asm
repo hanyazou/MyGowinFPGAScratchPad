@@ -8,7 +8,8 @@ INIT:
 	RET
 
 CONIN:
-	XOR	res,res
+	CALL	CONST		; wait for key input
+	JR	Z,CONIN
 	IN.B	res,(CONDAT)
 	RET
 

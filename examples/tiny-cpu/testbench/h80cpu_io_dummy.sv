@@ -17,7 +17,7 @@ module h80cpu_io #(
    
    `include "h80bus.svh"
 
-   localparam LINE_DELAY = 2000000;
+   localparam LINE_DELAY = 200;
 
    reg [1:0] state;
    reg [BUS_DATA_WIDTH-1:0] data;
@@ -50,6 +50,10 @@ module h80cpu_io #(
                   if (cmd == bus_cmd_write_b) begin
                      $write("%c", data_[7:0]);
                      $fflush();
+
+                     // Insert a delay after each output
+                     // This prevents the unimon D(ump) command from stopping
+                     line_delay = LINE_DELAY;
                   end
                   if (cmd == bus_cmd_read_b) begin
                      byte input_data;
