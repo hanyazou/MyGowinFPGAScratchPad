@@ -9,7 +9,7 @@ module main();
       tb_begin("test_rom");
       io0.open_input_file("tb_mon_input.txt");
       cpu_init();
-      cpu_run();
+      cpu_run(300000);
       tb_end();
       io0.close_input_file();
 
