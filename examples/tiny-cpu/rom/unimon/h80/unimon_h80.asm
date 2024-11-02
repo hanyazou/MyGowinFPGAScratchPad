@@ -252,7 +252,6 @@ WSTART:
 ERR:
 	LD	arg0,ERRMSG
 	CALL	STROUT
-	HALT                    ; XXX
 	JR	WSTART
 
 ;;; 
