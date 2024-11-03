@@ -597,6 +597,7 @@ LHI1:
 	CALL	HEXIN
 	ADD	v1,res0		; Checksum
 
+	XOR	tmp,tmp
 	LD.B	tmp,(RECTYP)
 	OR	tmp,tmp
 	JR	NZ,LHI2
@@ -611,6 +612,7 @@ LHI3:
 	AND	v1,0ffh
 	OR	v1,v1
 	JR	NZ,LHIE		; Checksum error
+	XOR	tmp,tmp
 	LD.B	tmp,(RECTYP)
 	OR	tmp,tmp
 	JP	Z,LH3
@@ -662,6 +664,7 @@ LHS3:
 	CP	v1,0FFH
 	JR	NZ,LHSE		; Checksum error
 
+	XOR	tmp,tmp
 	LD.B	tmp,(RECTYP)
 	CP	tmp,'7'
 	JR	Z,LHSR
