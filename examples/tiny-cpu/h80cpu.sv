@@ -239,15 +239,15 @@ module h80cpu #(
          end
          16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
             bus_wr_data <= regs[reg_pc] + 2;
-            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-            regs[reg_sp] <= regs[reg_sp] - 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+            regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
             next_ins_addr = regs[ins[3:0]];
             do_memory_access = 1;
          end
          16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_nnnn RST n (call address n * 8)
             bus_wr_data <= regs[reg_pc] + 2;
-            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-            regs[reg_sp] <= regs[reg_sp] - 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+            regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
             next_ins_addr = bus_addr_t'(ins[3:0] * 8);
             do_memory_access = 1;
          end
