@@ -18,6 +18,9 @@ TARGET:	equ	"H80"
 ;;;
 
 	ORG	0000H
+	LD	r0,0
+	LD.B	r1,"X"
+	OUT.B	(r0),r1
         ;; DI
 	JP	CSTART
 
@@ -76,6 +79,16 @@ E_CONST:
 
 	ORG	0100H
 CSTART:
+	LD	r0,0
+	LD.B	r1,"H"
+	OUT.B	(r0),r1
+	LD.B	r1,"i"
+	OUT.B	(r0),r1
+	LD.B	r1,0dh
+	OUT.B	(r0),r1
+	LD.B	r1,0ah
+	OUT.B	(r0),r1
+
 	LD	tmp,STACK
 	LD	SP,tmp
 
@@ -83,6 +96,9 @@ CSTART:
 	SPINIT
 	ENDIF
 
+	LD	r0,0
+	LD.B	r1,"A"
+	OUT.B	(r0),r1
 	;; DRAM warming up
 	IF USE_WARMUP
 
@@ -106,6 +122,9 @@ WU0:
 
 	ENDIF
 
+	LD	r0,0
+	LD.B	r1,"B"
+	OUT.B	(r0),r1
 	;; Check RAM
 	IF USE_RAMCHK
 
@@ -143,6 +162,9 @@ RC2:
 RCE:	
 	ENDIF
 	
+	LD	r0,0
+	LD.B	r1,"C"
+	OUT.B	(r0),r1
 	;; CPU identification
 	XOR	tmp,tmp
 	LD.B	(PSPEC),tmp
@@ -158,7 +180,13 @@ IDE:
 	LD.W	(INBUF),v0
 	ENDIF			; USE_IDENT
 
+	LD	r0,0
+	LD.B	r1,"D"
+	OUT.B	(r0),r1
 	CALL    INIT
+	LD	r0,0
+	LD.B	r1,"E"
+	OUT.B	(r0),r1
 
 	LD.W	tmp,1000H
 	LD.W	(DSADDR),tmp
@@ -169,6 +197,9 @@ IDE:
 	XOR	tmp,tmp
 	LD.B	(IOPAGE),tmp
 
+	LD	r0,0
+	LD.B	r1,"Z"
+	OUT.B	(r0),r1
 	IF USE_REGCMD
 
 	;; Initialize register value
