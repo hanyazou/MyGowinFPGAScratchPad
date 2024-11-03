@@ -145,8 +145,8 @@ module h80cpu #(
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
             bus_rd_reg <= reg_pc;
             bus_rd_extend_mode <= bus_rd_extend_none;
-            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
-            regs[reg_sp] <= regs[reg_sp] + 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_sp]);
+            regs[reg_sp] <= regs[reg_sp] + (CPU_REG_WIDTH / 8);
             do_memory_access = 1;
          end
          // 0000_0000_0000_0011 to 0111_1110 reserved
