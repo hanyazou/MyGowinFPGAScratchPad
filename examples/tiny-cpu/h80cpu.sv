@@ -447,12 +447,10 @@ module h80cpu #(
          end
          if (bus_cmd == bus_cmd_read_w) begin
             if (16 < BUS_DATA_WIDTH && 16 < CPU_REG_WIDTH) begin
-               if (bus_rd_extend_mode == bus_rd_extend_none)
-                 regs[bus_rd_reg] <= { regs[bus_rd_reg][CPU_REG_WIDTH-1:16], bus_data_[15:0] };
-               else
                if (bus_rd_extend_mode == bus_rd_extend_signed)
                  regs[bus_rd_reg] <= { { CPU_REG_WIDTH-16 {bus_data_[15]} }, bus_data_[15:0] };
                else
+                 // extend_none or extend_unsigned
                  regs[bus_rd_reg] <= { { CPU_REG_WIDTH-16 {1'b0} }, bus_data_[15:0] };
             end else begin
               regs[bus_rd_reg] <= bus_data_[BUS_DATA_WIDTH-1:0];
