@@ -145,8 +145,8 @@ module h80cpu #(
          16'b0000_0000_0000_0010: begin  //  0 0000_0000_0010 RET
             bus_rd_reg <= reg_pc;
             bus_rd_extend_mode <= bus_rd_extend_none;
-            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
-            regs[reg_sp] <= regs[reg_sp] + 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_sp]);
+            regs[reg_sp] <= regs[reg_sp] + (CPU_REG_WIDTH / 8);
             do_memory_access = 1;
          end
          // 0000_0000_0000_0011 to 0111_1110 reserved
@@ -159,8 +159,8 @@ module h80cpu #(
                 (ins[2] == 1'b1 && regs[reg_flag][ins[1:0]])) begin
                bus_rd_reg <= reg_pc;
                bus_rd_extend_mode <= bus_rd_extend_none;
-               bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
-               regs[reg_sp] <= regs[reg_sp] + 2;
+               bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_sp]);
+               regs[reg_sp] <= regs[reg_sp] + (CPU_REG_WIDTH / 8);
                do_memory_access = 1;
             end
          end
@@ -239,15 +239,15 @@ module h80cpu #(
          end
          16'b0000_0001_1100_zzzz: begin  //  0 0001_1100_zzzz CALL R
             bus_wr_data <= regs[reg_pc] + 2;
-            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-            regs[reg_sp] <= regs[reg_sp] - 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+            regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
             next_ins_addr = regs[ins[3:0]];
             do_memory_access = 1;
          end
          16'b0000_0001_1101_zzzz: begin  //  0 0001_1101_nnnn RST n (call address n * 8)
             bus_wr_data <= regs[reg_pc] + 2;
-            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-            regs[reg_sp] <= regs[reg_sp] - 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+            regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
             next_ins_addr = bus_addr_t'(ins[3:0] * 8);
             do_memory_access = 1;
          end
@@ -262,8 +262,8 @@ module h80cpu #(
             if ((ins[6] == 1'b0 && !regs[reg_flag][ins[5:4]]) ||
                 (ins[6] == 1'b1 && regs[reg_flag][ins[5:4]])) begin
                bus_wr_data <= regs[reg_pc] + 2;
-               bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-               regs[reg_sp] <= regs[reg_sp] - 2;
+               bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+               regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
                next_ins_addr = regs[ins[3:0]];
                do_memory_access = 1;
             end
