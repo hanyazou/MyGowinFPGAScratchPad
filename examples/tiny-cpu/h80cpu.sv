@@ -262,8 +262,8 @@ module h80cpu #(
             if ((ins[6] == 1'b0 && !regs[reg_flag][ins[5:4]]) ||
                 (ins[6] == 1'b1 && regs[reg_flag][ins[5:4]])) begin
                bus_wr_data <= regs[reg_pc] + 2;
-               bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-               regs[reg_sp] <= regs[reg_sp] - 2;
+               bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+               regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
                next_ins_addr = regs[ins[3:0]];
                do_memory_access = 1;
             end
