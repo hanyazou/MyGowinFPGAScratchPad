@@ -175,15 +175,15 @@ module h80cpu #(
          end
          16'b0000_0001_0000_zzzz: begin  //  0 0001_0000_rrrr PUSH R
             bus_wr_data <= regs[ins[3:0]];
-            bus_run_cmd(BUS_MEM, bus_cmd_write_w, regs[reg_sp] - 2);
-            regs[reg_sp] <= regs[reg_sp] - 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_write, regs[reg_sp] - (CPU_REG_WIDTH / 8));
+            regs[reg_sp] <= regs[reg_sp] - (CPU_REG_WIDTH / 8);
             do_memory_access = 1;
          end
          16'b0000_0001_0001_zzzz: begin  //  0 0001_0001_rrrr POP R
             bus_rd_reg <= ins[3:0];
             bus_rd_extend_mode <= bus_rd_extend_none;
-            bus_run_cmd(BUS_MEM, bus_cmd_read_w, regs[reg_sp]);
-            regs[reg_sp] <= regs[reg_sp] + 2;
+            bus_run_cmd(BUS_MEM, bus_cmd_read, regs[reg_sp]);
+            regs[reg_sp] <= regs[reg_sp] + (CPU_REG_WIDTH / 8);
             do_memory_access = 1;
          end
          16'b0000_0001_0010_zzzz: begin  //  0 0001_0010_rrrr EXTN R.w
