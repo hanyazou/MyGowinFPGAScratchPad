@@ -157,7 +157,7 @@ RC2:
 	LD.B	(v2),tmp1
 	ADD	v2,1
 	CP	v2,RAM_MAX
-	JR	C,RC0
+	JR	NZ,RC0
 	LD.W	(RAMEND),v2
 RCE:	
 	ENDIF
