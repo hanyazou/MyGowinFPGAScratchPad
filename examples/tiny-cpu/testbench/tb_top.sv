@@ -389,9 +389,11 @@ module main();
       mem_write('h2002, 'h0000);
 
       addr = 'h0000;
+      `cpu_mem(addr, I_NOP());             // long word access must be 4 byte aligned
       `cpu_mem(addr, I_LD_R_I(0));         // LD r0, 12345678h
       `cpu_mem(addr, 'h5678);
       `cpu_mem(addr, 'h1234);
+      `cpu_mem(addr, I_NOP());             // long word access must be 4 byte aligned
       `cpu_mem(addr, I_LD_R_I(1));         // LD r1, 00002000h
       `cpu_mem(addr, 'h2000);
       `cpu_mem(addr, 'h0000);
@@ -413,6 +415,9 @@ module main();
       end
 
       `cpu_mem(addr, I_LD_M_R(1, 0));      // LD (r1), r0
+      if ((addr % 4) != 2) begin
+        `cpu_mem(addr, I_NOP());           // long word access must be 4 byte aligned
+      end
       `cpu_mem(addr, I_LD_R_I(0));         // LD r0, 9abcdef0h
       `cpu_mem(addr, 'hdef0);
       `cpu_mem(addr, 'h9abc);
@@ -752,6 +757,9 @@ module main();
       cpu_init();
       addr = 'h0000;
       if (16 < CPU_REG_WIDTH) begin
+         if ((addr % 4) != 2) begin
+           `cpu_mem(addr, I_NOP());             // long word access must be 4 byte aligned
+         end
          `cpu_mem(addr, I_LD_R_I(0));           // LD r0, prev
          `cpu_mem(addr, prev[15:0]);
          `cpu_mem(addr, prev[CPU_REG_WIDTH-1:16]);
@@ -915,12 +923,21 @@ module main();
       `cpu_mem(addr, flags);
       `cpu_mem(addr, I_LD_R_R(reg_flag, 0)); // LD F, r0
       if (16 < CPU_REG_WIDTH) begin
+         if ((addr % 4) != 2) begin
+           `cpu_mem(addr, I_NOP());          // long word access must be 4 byte aligned
+         end
          `cpu_mem(addr, I_LD_R_I(rd));       // LD dst, deadbeefh
          `cpu_mem(addr, 'hbeef);
          `cpu_mem(addr, 'hdead);
+         if ((addr % 4) != 2) begin
+           `cpu_mem(addr, I_NOP());          // long word access must be 4 byte aligned
+         end
          `cpu_mem(addr, I_LD_R_I(ra));       // LD a
          `cpu_mem(addr, a[15:0]);
          `cpu_mem(addr, a[CPU_REG_WIDTH-1:16]);
+         if ((addr % 4) != 2) begin
+           `cpu_mem(addr, I_NOP());          // long word access must be 4 byte aligned
+         end
          `cpu_mem(addr, I_LD_R_I(rb));       // LD b
          `cpu_mem(addr, b[15:0]);
          `cpu_mem(addr, b[CPU_REG_WIDTH-1:16]);
@@ -1092,7 +1109,7 @@ module main();
       'h03cz: ins_name = " JRZ";
       endcase
 
-      if (jump_result != -1) begin
+      if (jump_result != bus_addr_t'(-1)) begin
          $display("test_jump: %s %h %h", ins_name, jump_addr, jump_result);
       end else begin
          $display("test_jump: %s %h", ins_name, jump_addr);
@@ -1113,7 +1130,7 @@ module main();
 
       cpu_run();
 
-      if (jump_result != -1) begin
+      if (jump_result != bus_addr_t'(-1)) begin
          bus_addr_t addr;
          addr = jump_result;
          `cpu_mem(addr, I_HALT());              // HALT

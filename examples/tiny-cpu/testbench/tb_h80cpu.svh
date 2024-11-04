@@ -112,7 +112,7 @@
    task mem_fill(int addr, bus_data_t data, int len);
       integer addr_end;
 
-      for (addr_end = addr + len; addr < addr_end; addr++) begin
+      for (addr_end = addr + len; addr < addr_end; addr += 2) begin
          mem_write(addr, data);
       end
    endtask
