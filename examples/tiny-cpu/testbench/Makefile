@@ -39,7 +39,7 @@ bin_to_svh = \
     | awk '{ \
              if ($$1 == "") \
                next; \
-             printf("      mem[16'"'"'h%04x]=16'"'"'h%s;\n", addr / 2, $$1); \
+             printf("      mem%d[16'"'"'h%04x]=16'"'"'h%s;\n", (addr/2)%2, addr / 4, $$1); \
              addr += 2; }' \
           >> $@ && \
 	echo end >> $@
