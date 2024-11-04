@@ -14,6 +14,7 @@ module h80cpu_mem #(
    output wire wait_n
    );
 
+   `include "sim_utils.svh"
    `include "h80bus.svh"
 
    reg [15:0] mem0[MEM_SIZE/4];
@@ -38,13 +39,22 @@ module h80cpu_mem #(
             if (!ce_n && addr < MEM_SIZE) begin
                case (cmd)
                bus_cmd_read: begin
+                  if (addr[1:0] != 2'b00) begin
+                     `SIM_DISPLAY(("### Address error: read long %h", addr));
+                  end
                   rd_data <= { mem1[addr[15:2]], mem0[addr[15:2]] };
                end
                bus_cmd_write: begin
+                  if (addr[1:0] != 2'b00) begin
+                     `SIM_DISPLAY(("### Address error: write long %h", addr));
+                  end
                   mem0[addr[15:2]] <= data_[15:0];
                   mem1[addr[15:2]] <= data_[31:16];
                end
                bus_cmd_read_w: begin
+                  if (addr[0]) begin
+                     `SIM_DISPLAY(("### Address error: read half %h", addr));
+                  end
                   if (addr[1]) begin
                      rd_data <= { 16'h00, mem1[addr[15:2]] };
                   end else begin
@@ -52,6 +62,9 @@ module h80cpu_mem #(
                   end
                end
                bus_cmd_write_w: begin
+                  if (addr[0]) begin
+                     `SIM_DISPLAY(("### Address error: write half %h", addr));
+                  end
                   if (addr[1]) begin
                      mem1[addr[15:2]] <= data_[15:0];
                   end else begin

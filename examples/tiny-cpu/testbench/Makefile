@@ -23,7 +23,7 @@ run: tb_top
 	./tb_top
 
 tb_top: tb_top.sv ${SRCS} ${HDRS} 
-	iverilog  -o tb_top ${IV_OPTS} ${SRCS} tb_top.sv
+	iverilog -DSIMULATION=1 -o tb_top ${IV_OPTS} ${SRCS} tb_top.sv
 
 asm_to_bin = \
 	asl $< -o $*.p -L -olist $*.lst && \
