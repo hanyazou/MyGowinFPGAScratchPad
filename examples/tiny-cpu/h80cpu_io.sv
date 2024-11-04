@@ -32,7 +32,7 @@ module h80cpu_io #(
    assign wait_n = (!ce_n && state != S_IDLE) ? 1'b0 : 1'b1;
    assign data_ = (!ce_n && cmd[0]) ? data : {BUS_DATA_WIDTH{1'bz}};
 
-   uart_tx #( .CLK_HZ(50000000), .BIT_RATE(230400), .PAYLOAD_BITS(8))
+   uart_tx #( .CLK_HZ(50000000), .BIT_RATE(115200), .PAYLOAD_BITS(8))
       tx(
          .clk (sysclk),
          .resetn (~reset),
@@ -40,7 +40,7 @@ module h80cpu_io #(
          .uart_tx_busy( uart_busy),
          .uart_tx_en(uart_en),
          .uart_tx_data(uart_tx));
-   uart_rx #( .CLK_HZ(50000000), .BIT_RATE(230400), .PAYLOAD_BITS(8))
+   uart_rx #( .CLK_HZ(50000000), .BIT_RATE(115200), .PAYLOAD_BITS(8))
       rx(
          .clk (sysclk),
          .resetn (~reset),
