@@ -38,50 +38,41 @@ module h80cpu_mem #(
             if (!ce_n && addr < MEM_SIZE) begin
                case (cmd)
                bus_cmd_read: begin
-                  if (addr[1]) begin
-                     rd_data <= { mem0[addr[15:2] + 1], mem1[addr[15:2]] };
-                  end else begin
-                     rd_data <= { mem1[addr[15:2]], mem0[addr[15:2]] };
-                  end
+                  rd_data <= { mem1[addr[15:2]], mem0[addr[15:2]] };
                end
                bus_cmd_write: begin
-                  if (addr[1]) begin
-                     mem1[addr[15:2]] <= data_[15:0];
-                     mem0[addr[15:2] + 1] <= data_[31:16];
-                  end else begin
-                     mem0[addr[15:2]] <= data_[15:0];
-                     mem1[addr[15:2]] <= data_[31:16];
-                  end
+                  mem0[addr[15:2]] <= data_[15:0];
+                  mem1[addr[15:2]] <= data_[31:16];
                end
                bus_cmd_read_w: begin
-                 if (addr[1]) begin
-                    rd_data <= { 16'h00, mem1[addr[15:2]] };
-                 end else begin
-                    rd_data <= { 16'h00, mem0[addr[15:2]] };
-                 end
+                  if (addr[1]) begin
+                     rd_data <= { 16'h00, mem1[addr[15:2]] };
+                  end else begin
+                     rd_data <= { 16'h00, mem0[addr[15:2]] };
+                  end
                end
                bus_cmd_write_w: begin
-                 if (addr[1]) begin
-                    mem1[addr[15:2]] <= data_[15:0];
-                 end else begin
-                    mem0[addr[15:2]] <= data_[15:0];
-                 end
+                  if (addr[1]) begin
+                     mem1[addr[15:2]] <= data_[15:0];
+                  end else begin
+                     mem0[addr[15:2]] <= data_[15:0];
+                  end
                end
                bus_cmd_read_b: begin
-                 case (addr[1:0])
-                 2'b00: rd_data <= { 24'h00, mem0[addr[15:2]][7:0] };
-                 2'b01: rd_data <= { 24'h00, mem0[addr[15:2]][15:8] };
-                 2'b10: rd_data <= { 24'h00, mem1[addr[15:2]][7:0] };
-                 2'b11: rd_data <= { 24'h00, mem1[addr[15:2]][15:8] };
-                 endcase
+                  case (addr[1:0])
+                  2'b00: rd_data <= { 24'h00, mem0[addr[15:2]][7:0] };
+                  2'b01: rd_data <= { 24'h00, mem0[addr[15:2]][15:8] };
+                  2'b10: rd_data <= { 24'h00, mem1[addr[15:2]][7:0] };
+                  2'b11: rd_data <= { 24'h00, mem1[addr[15:2]][15:8] };
+                  endcase
                end
                bus_cmd_write_b: begin
-                 case (addr[1:0])
-                 2'b00: mem0[addr[15:2]] <= { data_[7:0], mem0[addr[15:2]][7:0] };
-                 2'b01: mem0[addr[15:2]] <= { mem0[addr[15:2]][15:8], data_[7:0] };
-                 2'b10: mem1[addr[15:2]] <= { data_[7:0], mem1[addr[15:2]][7:0] };
-                 2'b11: mem1[addr[15:2]] <= { mem1[addr[15:2]][15:8], data_[7:0] };
-                 endcase
+                  case (addr[1:0])
+                  2'b00: mem0[addr[15:2]] <= { data_[7:0], mem0[addr[15:2]][7:0] };
+                  2'b01: mem0[addr[15:2]] <= { mem0[addr[15:2]][15:8], data_[7:0] };
+                  2'b10: mem1[addr[15:2]] <= { data_[7:0], mem1[addr[15:2]][7:0] };
+                  2'b11: mem1[addr[15:2]] <= { mem1[addr[15:2]][15:8], data_[7:0] };
+                  endcase
                end
                endcase // case (cmd)
                state <= 0;  // there is only one state, no transition
