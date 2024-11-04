@@ -5,9 +5,6 @@
 
 INIT:
 	;; nothing to do here
-	LD	r0,0
-	LD.B	r1,"x"
-	OUT.B	(r0),r1
 	RET
 
 CONIN:
