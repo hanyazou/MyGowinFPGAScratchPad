@@ -122,20 +122,20 @@ RC0:
 	LD.B	arg0,(v2)
 	CP	tmp0,arg0
 	JR	NZ,RC1		; Unwritable
-	LD	tmp0,(v1)
+	LD.B	tmp0,(v1)
 	CP	tmp0,arg0
 	JR	NZ,RC2
-	LD	(v2),tmp1
-	LD	tmp0,(v1)
+	LD.B	(v2),tmp1
+	LD.B	tmp0,(v1)
 	LD.B	arg0,(v2)
 	CP	tmp0,arg0
 	JR	NZ,RC2
 RC1:	
 	;; (v2) and (v1) points same memory or (v2) points no memory
-	LD	(RAMEND),v2
+	LD.W	(RAMEND),v2
 	JR	RCE
 RC2:
-	LD	(v2),tmp1
+	LD.B	(v2),tmp1
 	ADD	v2,1
 	CP	v2,RAM_MAX
 	JR	C,RC0
@@ -314,8 +314,8 @@ DPM0:
 	LD.B	res0,(DSTATE)
 	CP	res0,2
 	JR	C,DPM0
-	LD	arg0,(DEADDR)
-	LD	(DSADDR),arg0
+	LD.W	arg0,(DEADDR)
+	LD.W	(DSADDR),arg0
 	JP	WSTART
 DPM1:
 	LD.W	(DSADDR),arg0
@@ -510,7 +510,7 @@ SM1:
 	;; Empty  (Increment address)
 	POP	arg0
 	INC	arg0
-	LD	(SADDR),arg0
+	LD.W	(SADDR),arg0
 	JR	SM1
 SM2:
 	CP	res0,'-'
@@ -518,13 +518,13 @@ SM2:
 	;; '-'  (Decrement address)
 	POP	arg0
 	DEC	arg0
-	LD	(SADDR),arg0
+	LD.W	(SADDR),arg0
 	JR	SM1
 SM3:
 	CP	res0,'.'
 	JR	NZ,SM4
 	POP	arg0
-	LD	(SADDR),arg0
+	LD.W	(SADDR),arg0
 	JP	WSTART
 SM4:
 	CALL	RDHEX
@@ -533,7 +533,7 @@ SM4:
 	JP	Z,ERR
 	LD.B	(arg0),arg1
 	INC	arg0
-	LD	(SADDR),arg0
+	LD.W	(SADDR),arg0
 	JR	SM1
 
 ;;;
@@ -1747,6 +1747,7 @@ INBUF:	DS	BUFLEN	; Line input buffer
 DSADDR:	DS	2	; Dump start address
 DEADDR:	DS	2	; Dump end address
 DSTATE:	DS	1	; Dump state
+	ALIGN	2
 GADDR:	DS	2	; Go address
 SADDR:	DS	2	; Set address
 HEXMOD:	DS	1	; HEX file mode
@@ -1776,6 +1777,7 @@ REG_E:
 	ENDIF
 
 	IF USE_RAMCHK
+	ALIGN	2
 RAMEND:	DS	2
 	ENDIF
 
