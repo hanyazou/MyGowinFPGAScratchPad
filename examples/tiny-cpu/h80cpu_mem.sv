@@ -81,10 +81,10 @@ module h80cpu_mem #(
                end
                bus_cmd_write_b: begin
                   case (addr[1:0])
-                  2'b00: mem0[addr[15:2]] <= { data_[7:0], mem0[addr[15:2]][7:0] };
-                  2'b01: mem0[addr[15:2]] <= { mem0[addr[15:2]][15:8], data_[7:0] };
-                  2'b10: mem1[addr[15:2]] <= { data_[7:0], mem1[addr[15:2]][7:0] };
-                  2'b11: mem1[addr[15:2]] <= { mem1[addr[15:2]][15:8], data_[7:0] };
+                  2'b00: mem0[addr[15:2]] <= { mem0[addr[15:2]][15:8], data_[7:0] };
+                  2'b01: mem0[addr[15:2]] <= { data_[7:0], mem0[addr[15:2]][7:0] };
+                  2'b10: mem1[addr[15:2]] <= { mem1[addr[15:2]][15:8], data_[7:0] };
+                  2'b11: mem1[addr[15:2]] <= { data_[7:0], mem1[addr[15:2]][7:0] };
                   endcase
                end
                endcase // case (cmd)
