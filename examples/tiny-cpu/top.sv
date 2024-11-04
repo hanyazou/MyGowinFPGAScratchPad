@@ -91,10 +91,10 @@ module top(
    wire [7:0] frame[4 * NUM_CASCADES];
    assign frame[0] = bus_addr[15:8];
    assign frame[1] = bus_addr[7:0];
-   assign frame[2] = bus_data[15:8];
-   assign frame[3] = bus_data[7:0];
-   assign frame[4] = regs[0][15:8];
-   assign frame[5] = regs[0][7:0];
+   assign frame[2] = bus_data[31:24];
+   assign frame[3] = bus_data[23:16];
+   assign frame[4] = bus_data[15:8];
+   assign frame[5] = bus_data[7:0];
    assign frame[6] = { clk, clk_autorun, {6{1'b0}} };
    assign frame[7] = regs[reg_flag][7:0];
 
