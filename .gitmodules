@@ -1,3 +1,6 @@
 [submodule "examples/LicheeTang25k_SDRAM/LicheeTang25k_SDRAM"]
 	path = examples/LicheeTang25k_SDRAM/LicheeTang25k_SDRAM
 	url = https://github.com/ZiyangYE/LicheeTang25k_SDRAM.git
+[submodule "ip_cores/ben-marshall-uart"]
+	path = ip_cores/ben-marshall-uart
+	url = https://github.com/ben-marshall/uart.git

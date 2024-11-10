@@ -1,6 +1,6 @@
 module sseg_decoder(
-   input logic [3:0]  num,
-   output logic [6:0] y
+   input wire logic [3:0] num,
+   output reg [6:0] y
    );
 
    /*
