@@ -55,6 +55,7 @@ main()
             echo "Known boards:"
             echo "    tangnano20k"
             echo "    tangprimer25k"
+            echo "    tangmega138k"
             done=true
             ;;
         -e|--edu|--education)
@@ -89,6 +90,9 @@ main()
         ;;
     tangprimer25k)
         opt_device="-device_version A GW5A-LV25MG121NC1/I0"
+        ;;
+    tangmega138k)
+        opt_device="-device_version B GW5AST-LV138PG484AC1/I0"
         ;;
     *)
         echo "Unknown board $opt_board"
@@ -245,13 +249,17 @@ run_container()
     if ! image_exist; then
         build_image
     fi
-    local id=$( docker ps | grep -e " gowin_eda-i$" )
+    local id=$( docker ps -a | grep -e " gowin_eda-i$" )
     if [ "${id}" == "" ]; then
         docker run -it -d --name ${IMAGENAME}-i \
             --volume="${HOME}/workspace:${home_in_container}/workspace:rw" \
             --volume="${HOME}/.Xauthority:${home_in_container}/.Xauthority:ro" \
             --env DISPLAY=host.docker.internal:0 \
             ${IMAGENAME}
+    fi
+    local id=$( docker ps | grep -e " gowin_eda-i$" )
+    if [ "${id}" == "" ]; then
+        docker start ${IMAGENAME}-i
     fi
 }
 
