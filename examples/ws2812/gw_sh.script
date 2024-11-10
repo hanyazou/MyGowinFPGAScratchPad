@@ -1,0 +1,13 @@
+add_file ${PJD}/../TangMega-138K-example/ws2812/eda_proj/src/WS2812.v
+add_file ${PJD}/../TangMega-138K-example/ws2812/eda_proj/src/divide.v
+add_file ${PJD}/../TangMega-138K-example/ws2812/eda_proj/src/hsv2rgb.v
+add_file ${PJD}/../TangMega-138K-example/ws2812/eda_proj/src/multiply.v
+add_file ${PJD}/../TangMega-138K-example/ws2812/eda_proj/src/top.v
+add_file ${PJD}/${BOARD}.cst
+set_device ${DEVICE}
+set_option -top_module top
+set_option -verilog_std v2001
+set_option -cst_warn_to_error 1
+set_option -use_cpu_as_gpio 1
+set_option -use_ready_as_gpio 1
+run all
