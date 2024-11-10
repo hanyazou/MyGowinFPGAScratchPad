@@ -4,3 +4,6 @@
 [submodule "ip_cores/ben-marshall-uart"]
 	path = ip_cores/ben-marshall-uart
 	url = https://github.com/ben-marshall/uart.git
+[submodule "examples/TangMega-138K-example"]
+	path = examples/TangMega-138K-example
+	url = https://github.com/sipeed/TangMega-138K-example.git
